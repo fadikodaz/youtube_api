@@ -1,0 +1,15 @@
+[Unit]
+Description=YT MP3 Downloader
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/ytmp3
+ExecStart=/usr/bin/node /opt/ytmp3/server.js
+Restart=always
+RestartSec=5
+Environment=PORT=3000
+
+[Install]
+WantedBy=multi-user.target

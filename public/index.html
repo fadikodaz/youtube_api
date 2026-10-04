@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>YT MP3 Downloader</title>
+<style>
+  * { box-sizing: border-box; font-family: 'Segoe UI', system-ui, sans-serif; }
+  body { margin:0; min-height:100vh; background: radial-gradient(1200px 600px at 20% -10%, #ff2d55 0%, transparent 50%), radial-gradient(1000px 500px at 90% 10%, #7c3aed 0%, transparent 50%), #0b0b12; color:#fff; display:flex; align-items:center; justify-content:center; padding:24px; }
+  .card { width:100%; max-width:560px; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.15); backdrop-filter: blur(12px); border-radius:20px; padding:32px; box-shadow: 0 20px 60px rgba(0,0,0,.4); }
+  h1 { margin:0 0 6px; font-size:28px; } h1 span { color:#ff3b5c; }
+  p.sub { margin:0 0 20px; opacity:.7; }
+  .row { display:flex; gap:10px; }
+  input { flex:1; padding:14px 16px; border-radius:12px; border:1px solid rgba(255,255,255,.2); background:rgba(0,0,0,.35); color:#fff; outline:none; font-size:15px; }
+  input:focus { border-color:#ff3b5c; }
+  button { padding:14px 20px; border-radius:12px; border:0; cursor:pointer; font-weight:700; font-size:15px; }
+  .btn-fetch { background:#fff; color:#111; }
+  .btn-dl { background:#ff3b5c; color:#fff; width:100%; margin-top:12px; font-size:17px; }
+  .btn-dl:disabled { opacity:.5; cursor:not-allowed; }
+  #preview { display:none; margin-top:20px; background:rgba(0,0,0,.3); border-radius:14px; padding:14px; align-items:center; gap:14px; }
+  #preview.show { display:flex; }
+  #preview img { width:120px; border-radius:10px; }
+  #preview .t { font-weight:700; margin-bottom:4px; }
+  #preview .m { opacity:.7; font-size:13px; }
+  #status { margin-top:14px; font-size:14px; min-height:20px; opacity:.9; }
+  .libs { margin-top:18px; font-size:12px; opacity:.55; }
+  a { color:#ffb3c1; }
+  .loader { display:inline-block; width:16px; height:16px; border:2px solid #fff; border-top-color:transparent; border-radius:50%; animation:spin 0.7s linear infinite; vertical-align:-3px; margin-right:6px; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+</style>
+</head>
+<body>
+<div class="card">
+  <h1><span>▶</span> YT to MP3</h1>
+  <p class="sub">Paste a YouTube link, fetch info, download as 192kbps MP3.</p>
+  <div class="row">
+    <input id="url" placeholder="https://www.youtube.com/watch?v=..." />
+    <button class="btn-fetch" id="fetchBtn">Fetch</button>
+  </div>
+  <div id="preview">
+    <img id="thumb" src="" alt="" />
+    <div>
+      <div class="t" id="title"></div>
+      <div class="m" id="meta"></div>
+    </div>
+  </div>
+  <button class="btn-dl" id="dlBtn" disabled>Download MP3</button>
+  <div id="status"></div>
+  <div class="libs">Powered by GitHub libs: <a href="https://github.com/yt-dlp/yt-dlp" target="_blank">yt-dlp</a> + ffmpeg • Runs locally, no upload needed</div>
+</div>
+<script>
+const urlInput = document.getElementById('url');
+const fetchBtn = document.getElementById('fetchBtn');
+const dlBtn = document.getElementById('dlBtn');
+const statusEl = document.getElementById('status');
+let currentUrl = '';
+
+function setStatus(msg, loading=false) {
+  statusEl.innerHTML = loading ? `<span class="loader"></span>${msg}` : msg;
+}
+
+fetchBtn.onclick = async () => {
+  const url = urlInput.value.trim();
+  if (!url) { setStatus('Please paste a YouTube link.'); return; }
+  setStatus('Fetching video info...', true);
+  dlBtn.disabled = true;
+  try {
+    const r = await fetch('/api/info', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({url}) });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'Failed');
+    document.getElementById('preview').classList.add('show');
+    document.getElementById('thumb').src = data.thumbnail || '';
+    document.getElementById('title').textContent = data.title;
+    const mins = Math.floor(data.lengthSeconds/60), secs = data.lengthSeconds%60;
+    document.getElementById('meta').textContent = `${data.author} • ${mins}:${String(secs).padStart(2,'0')}`;
+    currentUrl = url;
+    dlBtn.disabled = false;
+    setStatus('Ready to download ✅');
+  } catch(e) {
+    setStatus('❌ ' + e.message);
+  }
+};
+
+dlBtn.onclick = () => {
+  if (!currentUrl) return;
+  setStatus('Converting & downloading... check your downloads folder 🎵', true);
+  // trigger browser download (streamed mp3)
+  window.location.href = '/api/download?url=' + encodeURIComponent(currentUrl);
+  setTimeout(()=> setStatus('Download started ✅ — if it takes a while, the server is converting to MP3.'), 3000);
+};
+
+urlInput.addEventListener('keydown', e => { if (e.key === 'Enter') fetchBtn.click(); });
+</script>
+</body>
+</html>
