@@ -23,7 +23,10 @@ module.exports = async function handler(req, res) {
     if (data.playabilityStatus?.status !== 'OK') {
       return res.status(400).json({
         error: 'Video unavailable: ' + (data.playabilityStatus?.reason || data.playabilityStatus?.status),
-        ...(trace && { debug: trace }),
+        ...(trace && {
+          debug: trace,
+          cookiesConfigured: !!(process.env.YOUTUBE_COOKIES || '').trim(),
+        }),
       });
     }
     const vd = data.videoDetails || {};
