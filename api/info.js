@@ -17,10 +17,13 @@ module.exports = async function handler(req, res) {
     const videoId = extractVideoId((body || {}).url || '');
     if (!videoId) return res.status(400).json({ error: 'Invalid YouTube URL' });
 
-    const data = await getPlayerData(videoId);
+    const wantDebug = !!body.debug;
+    const trace = wantDebug ? [] : null;
+    const data = await getPlayerData(videoId, { trace });
     if (data.playabilityStatus?.status !== 'OK') {
       return res.status(400).json({
         error: 'Video unavailable: ' + (data.playabilityStatus?.reason || data.playabilityStatus?.status),
+        ...(trace && { debug: trace }),
       });
     }
     const vd = data.videoDetails || {};
@@ -32,6 +35,7 @@ module.exports = async function handler(req, res) {
       thumbnail: thumbs[thumbs.length - 1]?.url || '',
       thumbnails: thumbs,
       videoId: vd.videoId || videoId,
+      ...(trace && { debug: trace }),
     });
   } catch (e) {
     console.error(e);

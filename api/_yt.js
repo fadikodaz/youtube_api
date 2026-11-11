@@ -18,6 +18,45 @@ const CONSENT_COOKIE = 'SOCS=CAI'; // skips YouTube's consent interstitial
 const HOMEPAGE_UA =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
 
+// Optional: real signed-in YouTube cookies (env var YOUTUBE_COOKIES, set in
+// Vercel dashboard). The bot check says "Sign in to confirm..." - sending a
+// logged-in session satisfies it directly. Format: the Cookie header string
+// exported from a browser while logged into YouTube (e.g. via a
+// "Get cookies.txt" extension, then paste the values as "A=b; C=d; ...").
+function cookieHeader() {
+  const extra = (process.env.YOUTUBE_COOKIES || '').trim();
+  return extra ? `${CONSENT_COOKIE}; ${extra}` : CONSENT_COOKIE;
+}
+
+// Logged-in cookies need a matching SAPISIDHASH Authorization header,
+// otherwise YouTube ignores the session. Same scheme yt-dlp uses:
+// SAPISIDHASH <unixts>_<sha1("ts sapisid https://www.youtube.com")>
+function authHeaders() {
+  const raw = (process.env.YOUTUBE_COOKIES || '').trim();
+  if (!raw) return {};
+  const jar = {};
+  for (const part of raw.split(';')) {
+    const i = part.indexOf('=');
+    if (i > 0) jar[part.slice(0, i).trim()] = part.slice(i + 1).trim();
+  }
+  const sapisid = jar.SAPISID || jar['__Secure-3PAPISID'] || jar['__Secure-1PAPISID'];
+  if (!sapisid) return {};
+  const ts = Math.floor(Date.now() / 1000);
+  const sha1 = (s) => require('crypto').createHash('sha1').update(s).digest('hex');
+  const origin = 'https://www.youtube.com';
+  const schemes = [];
+  if (jar.SAPISID) schemes.push('SAPISIDHASH');
+  if (jar['__Secure-1PAPISID']) schemes.push('SAPISID1PHASH');
+  if (jar['__Secure-3PAPISID']) schemes.push('SAPISID3PHASH');
+  const auth = schemes
+    .map((sch) => {
+      const sid = sch === 'SAPISIDHASH' ? jar.SAPISID : sch === 'SAPISID1PHASH' ? jar['__Secure-1PAPISID'] : jar['__Secure-3PAPISID'];
+      return `${sch} ${ts}_${sha1(`${ts} ${sid} ${origin}`)}`;
+    })
+    .join(' ');
+  return { Authorization: auth, 'X-Origin': origin, 'X-Youtube-Bootstrap-Logged-In': 'true' };
+}
+
 // InnerTube clients, ordered best-first. Versions/UA from yt-dlp's
 // INNERTUBE_CLIENTS (yt_dlp/extractor/youtube/_base.py).
 // visionos/tv need no JS player and no PO token for stream URLs.
@@ -106,7 +145,7 @@ async function getVisitorData() {
       headers: {
         'User-Agent': HOMEPAGE_UA,
         'Accept-Language': 'en-US,en;q=0.9',
-        Cookie: CONSENT_COOKIE,
+        Cookie: cookieHeader(),
       },
     });
     const html = await r.text();
@@ -133,7 +172,8 @@ async function callPlayer(videoId, cfg, visitorData) {
     Origin: 'https://www.youtube.com',
     Referer: 'https://www.youtube.com/',
     'Accept-Language': 'en-US,en;q=0.9',
-    Cookie: CONSENT_COOKIE,
+    Cookie: cookieHeader(),
+    ...authHeaders(),
   };
   if (visitorData) headers['X-Goog-Visitor-Id'] = visitorData;
 
@@ -195,14 +235,24 @@ function hasPlayableAudio(data) {
 // for a token fails or returns a weak one.
 async function getPlayerData(videoId, opts = {}) {
   const requireAudioUrl = !!opts.requireAudioUrl;
+  const trace = Array.isArray(opts.trace) ? opts.trace : null;
   let visitorData = await getVisitorData();
   let last = null;
 
+  const countAudioUrls = (d) => {
+    const sd = d.streamingData || {};
+    return [...(sd.formats || []), ...(sd.adaptiveFormats || [])].filter(
+      (f) => (f.mimeType || '').startsWith('audio/') && f.url
+    ).length;
+  };
+
   for (const cfg of CLIENTS) {
     let data;
+    let tokenNote = visitorData ? 'homepage' : 'none';
     try {
       data = await callPlayer(videoId, cfg, visitorData);
-    } catch {
+    } catch (e) {
+      trace?.push({ client: cfg.name, error: String(e.message || e).slice(0, 80) });
       continue; // network/HTTP error for this client - try the next one
     }
 
@@ -210,13 +260,24 @@ async function getPlayerData(videoId, opts = {}) {
       const harvested = visitorCache.value; // token from this very response
       if (harvested && harvested !== visitorData) {
         visitorData = harvested;
+        tokenNote = 'harvested-retry';
         try {
           data = await callPlayer(videoId, cfg, visitorData);
         } catch {
           // keep the LOGIN_REQUIRED response; handled below
         }
+      } else {
+        tokenNote = harvested ? 'same-token-skip-retry' : 'no-token-skip-retry';
       }
     }
+
+    trace?.push({
+      client: cfg.name,
+      status: data.playabilityStatus?.status || '?',
+      reason: String(data.playabilityStatus?.reason || '').slice(0, 60),
+      token: tokenNote,
+      audioUrls: countAudioUrls(data),
+    });
 
     last = data;
     if (data.playabilityStatus?.status !== 'OK') continue;
