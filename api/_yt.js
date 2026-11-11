@@ -129,13 +129,19 @@ function sanitizeFilename(name) {
 }
 
 // visitorData identifies this instance's "browser session" to YouTube.
-// Cached in module scope so warm serverless instances don't refetch it.
-const visitorCache = { value: null, at: 0 };
+// Cached per mode (anonymous vs signed-in) so warm serverless instances don't
+// refetch it.
+const visitorCaches = { anon: { value: null, at: 0 }, cookie: { value: null, at: 0 } };
 const VISITOR_TTL_MS = 10 * 60 * 1000;
 
-async function getVisitorData() {
-  if (visitorCache.value && Date.now() - visitorCache.at < VISITOR_TTL_MS) {
-    return visitorCache.value;
+function hasCookieConfig() {
+  return !!(process.env.YOUTUBE_COOKIES || '').trim();
+}
+
+async function getVisitorData(mode = 'anon') {
+  const cache = visitorCaches[mode] || visitorCaches.anon;
+  if (cache.value && Date.now() - cache.at < VISITOR_TTL_MS) {
+    return cache.value;
   }
   try {
     const r = await fetch('https://www.youtube.com/', {
@@ -145,7 +151,7 @@ async function getVisitorData() {
       headers: {
         'User-Agent': HOMEPAGE_UA,
         'Accept-Language': 'en-US,en;q=0.9',
-        Cookie: cookieHeader(),
+        Cookie: mode === 'cookie' ? cookieHeader() : CONSENT_COOKIE,
       },
     });
     const html = await r.text();
@@ -153,17 +159,18 @@ async function getVisitorData() {
       html.match(/"VISITOR_DATA":"([^"]+)"/) ||
       html.match(/"visitorData":"([^"]+)"/);
     if (m && m[1]) {
-      visitorCache.value = m[1];
-      visitorCache.at = Date.now();
+      cache.value = m[1];
+      cache.at = Date.now();
       return m[1];
     }
   } catch {
     // fall through - player call still works without visitorData, just weaker
   }
-  return visitorCache.value;
+  return cache.value;
 }
 
-async function callPlayer(videoId, cfg, visitorData) {
+async function callPlayer(videoId, cfg, visitorData, mode = 'anon') {
+  const useCookies = mode === 'cookie';
   const headers = {
     'Content-Type': 'application/json',
     'User-Agent': cfg.ua,
@@ -172,8 +179,8 @@ async function callPlayer(videoId, cfg, visitorData) {
     Origin: 'https://www.youtube.com',
     Referer: 'https://www.youtube.com/',
     'Accept-Language': 'en-US,en;q=0.9',
-    Cookie: cookieHeader(),
-    ...authHeaders(),
+    Cookie: useCookies ? cookieHeader() : CONSENT_COOKIE,
+    ...(useCookies ? authHeaders() : {}),
   };
   if (visitorData) headers['X-Goog-Visitor-Id'] = visitorData;
 
@@ -207,8 +214,9 @@ async function callPlayer(videoId, cfg, visitorData) {
   // The response carries a session-bound visitorData; keep it fresh.
   const respVd = data.responseContext?.visitorData;
   if (respVd) {
-    visitorCache.value = respVd;
-    visitorCache.at = Date.now();
+    const cache = visitorCaches[mode] || visitorCaches.anon;
+    cache.value = respVd;
+    cache.at = Date.now();
   }
   return data;
 }
@@ -227,16 +235,20 @@ function hasPlayableAudio(data) {
 // If nothing is playable, the last response is returned so callers can show
 // YouTube's own reason (e.g. "Sign in to confirm you're not a bot").
 //
+// Order matters: we try the ANONYMOUS pass first, then (if configured) a
+// signed-in pass with YOUTUBE_COOKIES, then one more anonymous retry round.
+// Measured on Vercel's IP: anonymous gets some clients to OK, while sending
+// the signed-in session from a datacenter IP trips Google's unfamiliar-IP
+// challenge and fails ALL clients - so cookies are only a fallback, and the
+// final round repeats the mode that came closest.
+//
 // Self-healing token: when YouTube answers LOGIN_REQUIRED ("Sign in to
 // confirm you're not a bot"), the response still carries a fresh visitorData
 // issued to *this* IP. callPlayer() caches it, so we retry the same client
-// with it - this flips the bot check to OK with direct stream URLs. It's what
-// makes the code work on datacenter IPs (Vercel) where the homepage fetch
-// for a token fails or returns a weak one.
+// with it - this flips the bot check to OK with direct stream URLs.
 async function getPlayerData(videoId, opts = {}) {
   const requireAudioUrl = !!opts.requireAudioUrl;
   const trace = Array.isArray(opts.trace) ? opts.trace : null;
-  let visitorData = await getVisitorData();
   let last = null;
 
   const countAudioUrls = (d) => {
@@ -246,44 +258,68 @@ async function getPlayerData(videoId, opts = {}) {
     ).length;
   };
 
-  for (const cfg of CLIENTS) {
-    let data;
-    let tokenNote = visitorData ? 'homepage' : 'none';
-    try {
-      data = await callPlayer(videoId, cfg, visitorData);
-    } catch (e) {
-      trace?.push({ client: cfg.name, error: String(e.message || e).slice(0, 80) });
-      continue; // network/HTTP error for this client - try the next one
-    }
+  // Best-scoring mode gets the final retry round.
+  const modes = hasCookieConfig() ? ['anon', 'cookie'] : ['anon'];
+  const modeScores = { anon: 0, cookie: 0 };
 
-    if (data.playabilityStatus?.status === 'LOGIN_REQUIRED') {
-      const harvested = visitorCache.value; // token from this very response
-      if (harvested && harvested !== visitorData) {
-        visitorData = harvested;
-        tokenNote = 'harvested-retry';
-        try {
-          data = await callPlayer(videoId, cfg, visitorData);
-        } catch {
-          // keep the LOGIN_REQUIRED response; handled below
-        }
-      } else {
-        tokenNote = harvested ? 'same-token-skip-retry' : 'no-token-skip-retry';
+  const tryMode = async (mode) => {
+    let visitorData = await getVisitorData(mode);
+    for (const cfg of CLIENTS) {
+      let data;
+      let tokenNote = visitorData ? 'homepage' : 'none';
+      try {
+        data = await callPlayer(videoId, cfg, visitorData, mode);
+      } catch (e) {
+        trace?.push({ mode, client: cfg.name, error: String(e.message || e).slice(0, 80) });
+        continue; // network/HTTP error for this client - try the next one
       }
+
+      if (data.playabilityStatus?.status === 'LOGIN_REQUIRED') {
+        const cache = visitorCaches[mode] || visitorCaches.anon;
+        const harvested = cache.value; // token from this very response
+        if (harvested && harvested !== visitorData) {
+          visitorData = harvested;
+          tokenNote = 'harvested-retry';
+          try {
+            data = await callPlayer(videoId, cfg, visitorData, mode);
+          } catch {
+            // keep the LOGIN_REQUIRED response; handled below
+          }
+        } else {
+          tokenNote = harvested ? 'same-token-skip-retry' : 'no-token-skip-retry';
+        }
+      }
+
+      const audioUrls = countAudioUrls(data);
+      const status = data.playabilityStatus?.status || '?';
+      // Score: playable status counts a little, direct audio URLs count a lot
+      const score = (status === 'OK' ? 1 : 0) + audioUrls;
+      modeScores[mode] = Math.max(modeScores[mode] || 0, score);
+
+      trace?.push({ mode, client: cfg.name, status, reason: String(data.playabilityStatus?.reason || '').slice(0, 60), token: tokenNote, audioUrls });
+
+      last = data;
+      if (status !== 'OK') continue;
+      if (requireAudioUrl && audioUrls === 0) continue;
+      return data;
     }
+    return null;
+  };
 
-    trace?.push({
-      client: cfg.name,
-      status: data.playabilityStatus?.status || '?',
-      reason: String(data.playabilityStatus?.reason || '').slice(0, 60),
-      token: tokenNote,
-      audioUrls: countAudioUrls(data),
-    });
-
-    last = data;
-    if (data.playabilityStatus?.status !== 'OK') continue;
-    if (requireAudioUrl && !hasPlayableAudio(data)) continue;
-    return data;
+  for (const mode of modes) {
+    const hit = await tryMode(mode);
+    if (hit) return hit;
+    // Keep going while there's still something playable to find, e.g. info
+    // (no audio needed) may succeed on the anon pass even if download won't.
+    if (last?.playabilityStatus?.status === 'OK' && !requireAudioUrl) return last;
   }
+
+  // One more round with whichever mode came closest (bot checks are
+  // probabilistic; a repeat often lands OK where the first pass didn't).
+  const bestMode = (modeScores.cookie || 0) > (modeScores.anon || 0) ? 'cookie' : 'anon';
+  const retry = await tryMode(bestMode);
+  if (retry) return retry;
+
   if (last) return last;
   throw new Error('All YouTube clients failed');
 }
