@@ -11,15 +11,23 @@ module.exports = async function handler(req, res) {
     const videoId = extractVideoId(req.query?.url || '');
     if (!videoId) return res.status(400).send('Invalid YouTube URL');
 
-    const data = await getPlayerData(videoId);
+    const data = await getPlayerData(videoId, { requireAudioUrl: true });
     if (data.playabilityStatus?.status !== 'OK') {
-      return res.status(400).send('Video unavailable');
+      const reason = data.playabilityStatus?.reason || data.playabilityStatus?.status;
+      return res.status(400).send('Video unavailable: ' + reason);
     }
     const audio = pickBestAudio(data);
     const title = sanitizeFilename(data.videoDetails?.title);
     const ext = extFor(audio.mimeType);
 
-    const upstream = await fetch(audio.url);
+    const upstream = await fetch(audio.url, {
+      headers: {
+        // googlevideo also bot-checks: look like the client that asked for the stream
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+        'Accept-Language': 'en-US,en;q=0.9',
+      },
+    });
     if (!upstream.ok || !upstream.body) {
       return res.status(502).send('Could not fetch audio stream');
     }
