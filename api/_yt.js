@@ -100,6 +100,9 @@ async function getVisitorData() {
   }
   try {
     const r = await fetch('https://www.youtube.com/', {
+      // fail fast: if this hangs/fails we still recover via the harvested
+      // visitorData inside getPlayerData()
+      signal: AbortSignal.timeout(5000),
       headers: {
         'User-Agent': HOMEPAGE_UA,
         'Accept-Language': 'en-US,en;q=0.9',
@@ -146,6 +149,7 @@ async function callPlayer(videoId, cfg, visitorData) {
 
   const r = await fetch(PLAYER_URL, {
     method: 'POST',
+    signal: AbortSignal.timeout(10000),
     headers,
     body: JSON.stringify({
       videoId,
@@ -182,20 +186,42 @@ function hasPlayableAudio(data) {
 // so the download endpoint never gets a response it can't use.
 // If nothing is playable, the last response is returned so callers can show
 // YouTube's own reason (e.g. "Sign in to confirm you're not a bot").
+//
+// Self-healing token: when YouTube answers LOGIN_REQUIRED ("Sign in to
+// confirm you're not a bot"), the response still carries a fresh visitorData
+// issued to *this* IP. callPlayer() caches it, so we retry the same client
+// with it - this flips the bot check to OK with direct stream URLs. It's what
+// makes the code work on datacenter IPs (Vercel) where the homepage fetch
+// for a token fails or returns a weak one.
 async function getPlayerData(videoId, opts = {}) {
   const requireAudioUrl = !!opts.requireAudioUrl;
-  const visitorData = await getVisitorData();
+  let visitorData = await getVisitorData();
   let last = null;
+
   for (const cfg of CLIENTS) {
+    let data;
     try {
-      const data = await callPlayer(videoId, cfg, visitorData);
-      last = data;
-      if (data.playabilityStatus?.status !== 'OK') continue;
-      if (requireAudioUrl && !hasPlayableAudio(data)) continue;
-      return data;
+      data = await callPlayer(videoId, cfg, visitorData);
     } catch {
-      // network/HTTP error for this client - try the next one
+      continue; // network/HTTP error for this client - try the next one
     }
+
+    if (data.playabilityStatus?.status === 'LOGIN_REQUIRED') {
+      const harvested = visitorCache.value; // token from this very response
+      if (harvested && harvested !== visitorData) {
+        visitorData = harvested;
+        try {
+          data = await callPlayer(videoId, cfg, visitorData);
+        } catch {
+          // keep the LOGIN_REQUIRED response; handled below
+        }
+      }
+    }
+
+    last = data;
+    if (data.playabilityStatus?.status !== 'OK') continue;
+    if (requireAudioUrl && !hasPlayableAudio(data)) continue;
+    return data;
   }
   if (last) return last;
   throw new Error('All YouTube clients failed');
@@ -222,4 +248,4 @@ function extFor(mime) {
   return 'm4a';
 }
 
-module.exports = { extractVideoId, sanitizeFilename, getPlayerData, pickBestAudio, extFor };
+module.exports = { extractVideoId, sanitizeFilename, getPlayerData, pickBestAudio, extFor, CLIENTS, callPlayer, getVisitorData };
