@@ -1,12 +1,18 @@
 {
   "name": "youtube_panga",
-  "version": "1.0.0",
-  "description": "YouTube MP3 downloader with frontend - built on @distube/ytdl-core + ffmpeg",
+  "version": "2.0.0",
+  "description": "Fast YouTube audio downloader (yt-dlp + ffmpeg) with video/audio preview",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "dev": "node server.js",
+    "setup": "node scripts/fetch-ytdlp.js",
+    "postinstall": "node scripts/fetch-ytdlp.js"
   },
-  "keywords": [],
+  "engines": {
+    "node": ">=18.17"
+  },
+  "keywords": ["youtube", "mp3", "yt-dlp", "ffmpeg", "downloader"],
   "author": "",
   "license": "ISC",
   "type": "commonjs",

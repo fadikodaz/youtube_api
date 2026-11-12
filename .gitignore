@@ -1,2 +1,6 @@
 node_modules/
+bin/
 bin/yt-dlp.exe
+cookies.txt
+.env
+*.log
