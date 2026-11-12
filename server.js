@@ -191,6 +191,104 @@ function buildInfo(data, url) {
   };
 }
 
+function sendDownloadHeaders(res, job, { quality } = {}) {
+  res.status(200);
+  res.setHeader('Content-Type', job.contentType);
+  res.setHeader('Content-Disposition', `attachment; filename="${job.filename}"`);
+  if (job.estimatedSize) res.setHeader('X-Estimated-Size', String(job.estimatedSize));
+  if (quality) res.setHeader('X-Quality', String(quality));
+  res.setHeader('Cache-Control', 'no-store');
+  res.setHeader('X-Accel-Buffering', 'no');
+  if (typeof res.flushHeaders === 'function') res.flushHeaders();
+}
+
+// Resolve everything needed to start a download, without transferring media.
+// Shared by the check endpoint and the real download route.
+async function resolveDownload(req) {
+  const parsed = ytdlp.normalizeInput(req.query.url);
+  if (!parsed) throw new ytdlp.YtdlpError(ytdlp.ERRORS.BAD_URL.msg, 'BAD_URL');
+  if (!ytdlp.hasBinary()) throw new ytdlp.YtdlpError(ytdlp.ERRORS.NO_BINARY.msg, 'NO_BINARY');
+
+  const rawFormat = String(req.query.format || 'mp3').toLowerCase();
+  const format = rawFormat === 'original' ? 'original' : rawFormat === 'video' ? 'video' : 'mp3';
+  const quality = QUALITIES.includes(Number(req.query.quality)) ? Number(req.query.quality) : 192;
+
+  if (format === 'video') {
+    const height = Number(req.query.height);
+    const fps = Number(req.query.fps) || 0;
+    if (!height) throw new ytdlp.YtdlpError('Choose a video quality.', 'FORMAT');
+    const data = await getInfo(parsed.url);
+    if (data.is_live) throw new ytdlp.YtdlpError(ytdlp.ERRORS.LIVE.msg, 'LIVE');
+    const picked = ytdlp.pickVideoFormat(data, height, fps);
+    if (!picked) {
+      throw new ytdlp.YtdlpError('That video quality is not available.', 'FORMAT');
+    }
+    const title = ytdlp.sanitizeFilename(data.title);
+    return {
+      parsed,
+      format,
+      quality,
+      data,
+      picked,
+      title,
+      filename: `${title}.${picked.ext}`,
+      contentType: ytdlp.videoContentType(picked.ext),
+      estimatedSize: picked.estimatedSize || 0,
+      needsMerge: !picked.direct,
+    };
+  }
+
+  if (format === 'original') {
+    const data = await getInfo(parsed.url);
+    if (data.is_live) throw new ytdlp.YtdlpError(ytdlp.ERRORS.LIVE.msg, 'LIVE');
+    const audio = ytdlp.pickAudio(data);
+    const title = ytdlp.sanitizeFilename(data.title);
+    const ext = audio.ext || 'm4a';
+    return {
+      parsed,
+      format,
+      quality,
+      data,
+      audio,
+      title,
+      filename: `${title}.${ext}`,
+      contentType: ytdlp.contentTypeFor(ext),
+      estimatedSize: audio.filesize || audio.filesize_approx || 0,
+      needsMerge: false,
+    };
+  }
+
+  if (!ffmpegPath || !fs.existsSync(ffmpegPath)) {
+    throw new ytdlp.YtdlpError(
+      'ffmpeg is not installed on this server.',
+      'NO_BINARY',
+      'Run npm install (ffmpeg-static) or use format=original.'
+    );
+  }
+
+  let data = null;
+  try {
+    data = await getInfo(parsed.url);
+  } catch (e) {
+    // Download may still work even if metadata failed; keep a generic name.
+    console.warn('[download:mp3] info failed:', e.code || '', e.message);
+  }
+  if (data?.is_live) throw new ytdlp.YtdlpError(ytdlp.ERRORS.LIVE.msg, 'LIVE');
+  const title = ytdlp.sanitizeFilename(data?.title);
+  const duration = Number(data?.duration) || 0;
+  return {
+    parsed,
+    format,
+    quality,
+    data,
+    title,
+    filename: `${title}.mp3`,
+    contentType: 'audio/mpeg',
+    estimatedSize: ytdlp.estimateSize(duration, quality),
+    needsMerge: false,
+  };
+}
+
 // ---------------------------------------------------------------- proxy ------
 
 async function proxyMedia(remoteUrl, req, res, opts = {}) {
@@ -314,6 +412,16 @@ async function downloadVideoToTemp(req, res, url, picked, title) {
   };
   res.once('close', onClientClose);
   const cleanup = () => fs.rm(dir, { recursive: true, force: true }, () => {});
+
+  // Send the attachment headers right away so the browser opens its download
+  // entry immediately. The merged file usually has no Content-Length (chunked).
+  const ext = picked.ext || 'mp4';
+  sendDownloadHeaders(res, {
+    contentType: ytdlp.videoContentType(ext),
+    filename: `${title}.${ext}`,
+    estimatedSize: picked.estimatedSize || 0,
+  });
+
   try {
     const file = await ytdlp.downloadToFile(url, picked.selector, dir, 'media', {
       signal: ac.signal,
@@ -321,14 +429,6 @@ async function downloadVideoToTemp(req, res, url, picked, title) {
     res.off('close', onClientClose);
     const stat = fs.statSync(file);
     if (!stat.size) throw new ytdlp.YtdlpError('Downloaded video is empty.', 'UNAVAILABLE');
-    const ext = path.extname(file).slice(1) || 'mp4';
-    res.status(200);
-    res.setHeader('Content-Type', ytdlp.videoContentType(ext));
-    res.setHeader('Content-Disposition', `attachment; filename="${title}.${ext}"`);
-    res.setHeader('Content-Length', String(stat.size));
-    res.setHeader('X-Estimated-Size', String(stat.size));
-    res.setHeader('Cache-Control', 'no-store');
-    res.setHeader('X-Accel-Buffering', 'no');
     res.on('close', cleanup);
     const stream = fs.createReadStream(file);
     stream.on('error', () => {
@@ -343,18 +443,24 @@ async function downloadVideoToTemp(req, res, url, picked, title) {
   } catch (e) {
     res.off('close', onClientClose);
     cleanup();
-    throw e;
+    if (!res.headersSent) throw e;
+    console.error('[download:video]', e.code || '', e.message);
+    try {
+      res.destroy();
+    } catch {
+      /* ignore */
+    }
   }
 }
 
 // ---------------------------------------------------------------- mp3 pipe ---
 
-function pipeMp3(req, res, url, quality, title, duration) {
-  const estimate = ytdlp.estimateSize(duration, quality);
+function pipeMp3(req, res, url, quality) {
   let attempt = 0;
   let finished = false;
   let generation = 0;
   let current = null;
+  let anyBytes = false;
 
   const killCurrent = () => {
     if (!current) return;
@@ -390,7 +496,7 @@ function pipeMp3(req, res, url, quality, title, duration) {
   const fail = (raw) => {
     if (finished) return;
     const e = typeof raw === 'string' ? ytdlp.mapError(raw) : raw;
-    if (!res.headersSent && attempt < 2) {
+    if (!anyBytes && attempt < 2) {
       attempt += 1;
       killCurrent();
       start();
@@ -399,7 +505,16 @@ function pipeMp3(req, res, url, quality, title, duration) {
     finished = true;
     req.off('close', onClientClose);
     killCurrent();
-    sendError(res, e);
+    console.error('[download:mp3]', e.code || '', e.message);
+    if (!res.headersSent) {
+      sendError(res, e);
+    } else {
+      try {
+        res.destroy();
+      } catch {
+        /* ignore */
+      }
+    }
   };
 
   const start = () => {
@@ -430,7 +545,6 @@ function pipeMp3(req, res, url, quality, title, duration) {
     );
     current = { yt, ff };
 
-    let sent = false;
     let ytErr = '';
 
     yt.stdout.pipe(ff.stdin);
@@ -451,21 +565,14 @@ function pipeMp3(req, res, url, quality, title, duration) {
 
     yt.on('close', (code) => {
       if (stale() || finished) return;
-      if (code !== 0 && !sent) fail(ytdlp.mapError(ytErr || `yt-dlp exited with code ${code}`));
+      if (code !== 0 && !anyBytes) {
+        fail(ytdlp.mapError(ytErr || `yt-dlp exited with code ${code}`));
+      }
     });
 
     ff.stdout.on('data', (chunk) => {
       if (stale() || finished || res.destroyed) return;
-      if (!sent) {
-        sent = true;
-        res.status(200);
-        res.setHeader('Content-Type', 'audio/mpeg');
-        res.setHeader('Content-Disposition', `attachment; filename="${title}.mp3"`);
-        res.setHeader('X-Quality', String(quality));
-        if (estimate) res.setHeader('X-Estimated-Size', String(estimate));
-        res.setHeader('Cache-Control', 'no-store');
-        res.setHeader('X-Accel-Buffering', 'no');
-      }
+      anyBytes = true;
       if (!res.write(chunk)) {
         ff.stdout.pause();
         res.once('drain', () => ff.stdout.resume());
@@ -474,7 +581,7 @@ function pipeMp3(req, res, url, quality, title, duration) {
 
     ff.stdout.on('end', () => {
       if (stale() || finished) return;
-      if (!sent) {
+      if (!anyBytes) {
         fail(
           new ytdlp.YtdlpError(
             'No audio was produced for this video.',
@@ -489,7 +596,7 @@ function pipeMp3(req, res, url, quality, title, duration) {
 
     ff.on('close', (code) => {
       if (stale() || finished) return;
-      if (!sent) {
+      if (!anyBytes) {
         fail(ytdlp.mapError(ytErr || `ffmpeg exited with code ${code}`));
       } else if (code !== 0) {
         finish();
@@ -552,93 +659,55 @@ app.get('/api/stream', rateLimit({ max: 180 }), async (req, res) => {
   }
 });
 
+app.get('/api/download/check', rateLimit({ max: 60 }), async (req, res) => {
+  try {
+    const job = await resolveDownload(req);
+    res.setHeader('Cache-Control', 'no-store');
+    res.json({
+      ok: true,
+      format: job.format,
+      quality: job.quality,
+      filename: job.filename,
+      contentType: job.contentType,
+      estimatedSize: job.estimatedSize,
+      needsMerge: job.needsMerge,
+    });
+  } catch (e) {
+    console.error('[download:check]', e.code || '', e.message);
+    sendError(res, e);
+  }
+});
+
 app.get('/api/download', rateLimit({ max: 30 }), async (req, res) => {
-  const parsed = ytdlp.normalizeInput(req.query.url);
-  if (!parsed) return sendError(res, new ytdlp.YtdlpError(ytdlp.ERRORS.BAD_URL.msg, 'BAD_URL'));
-  if (!ytdlp.hasBinary()) {
-    return sendError(res, new ytdlp.YtdlpError(ytdlp.ERRORS.NO_BINARY.msg, 'NO_BINARY'));
+  let job;
+  try {
+    job = await resolveDownload(req);
+  } catch (e) {
+    console.error('[download]', e.code || '', e.message);
+    return sendError(res, e);
   }
 
-  const rawFormat = String(req.query.format || 'mp3').toLowerCase();
-  const format = rawFormat === 'original' ? 'original' : rawFormat === 'video' ? 'video' : 'mp3';
-  const quality = QUALITIES.includes(Number(req.query.quality)) ? Number(req.query.quality) : 192;
-
-  if (format === 'video') {
-    const height = Number(req.query.height);
-    const fps = Number(req.query.fps) || 0;
-    if (!height) {
-      return sendError(res, new ytdlp.YtdlpError('Choose a video quality.', 'FORMAT'));
-    }
-    let data;
-    try {
-      data = await getInfo(parsed.url);
-    } catch (e) {
-      return sendError(res, e);
-    }
-    if (data.is_live) {
-      return sendError(res, new ytdlp.YtdlpError(ytdlp.ERRORS.LIVE.msg, 'LIVE'));
-    }
-    const picked = ytdlp.pickVideoFormat(data, height, fps);
-    if (!picked) {
-      return sendError(
-        res,
-        new ytdlp.YtdlpError('That video quality is not available.', 'FORMAT')
-      );
-    }
-    const title = ytdlp.sanitizeFilename(data.title);
-    try {
-      if (picked.direct) {
-        await proxyMedia(picked.format.url, req, res, {
+  try {
+    if (job.format === 'video') {
+      if (job.picked.direct) {
+        await proxyMedia(job.picked.format.url, req, res, {
           attachment: true,
-          filename: `${title}.${picked.ext}`,
-          contentType: ytdlp.videoContentType(picked.ext),
+          filename: job.filename,
+          contentType: job.contentType,
         });
       } else {
-        await downloadVideoToTemp(req, res, parsed.url, picked, title);
+        await downloadVideoToTemp(req, res, job.parsed.url, job.picked, job.title);
       }
-    } catch (e) {
-      console.error('[download:video]', e.code || '', e.message);
-      sendError(res, e);
+    } else if (job.format === 'original') {
+      await streamOrDownload(req, res, job.parsed.url, { attachment: true });
+    } else {
+      sendDownloadHeaders(res, job, { quality: job.quality });
+      pipeMp3(req, res, job.parsed.url, job.quality);
     }
-    return;
-  }
-
-  if (format === 'original') {
-    try {
-      await streamOrDownload(req, res, parsed.url, { attachment: true });
-    } catch (e) {
-      console.error('[download:original]', e.code || '', e.message);
-      sendError(res, e);
-    }
-    return;
-  }
-
-  if (!ffmpegPath || !fs.existsSync(ffmpegPath)) {
-    return sendError(
-      res,
-      new ytdlp.YtdlpError(
-        'ffmpeg is not installed on this server.',
-        'NO_BINARY',
-        'Run npm install (ffmpeg-static) or use format=original.'
-      )
-    );
-  }
-
-  let data = null;
-  try {
-    data = await getInfo(parsed.url);
   } catch (e) {
-    // Download may still work even if metadata failed; keep a generic name.
-    console.warn('[download:mp3] info failed:', e.code || '', e.message);
+    console.error(`[download:${job.format}]`, e.code || '', e.message);
+    sendError(res, e);
   }
-
-  if (data?.is_live) {
-    return sendError(res, new ytdlp.YtdlpError(ytdlp.ERRORS.LIVE.msg, 'LIVE'));
-  }
-
-  const title = ytdlp.sanitizeFilename(data?.title);
-  const duration = Number(data?.duration) || 0;
-  pipeMp3(req, res, parsed.url, quality, title, duration);
 });
 
 app.post('/api/admin/update-ytdlp', async (req, res) => {
