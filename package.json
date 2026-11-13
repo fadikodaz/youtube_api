@@ -1,18 +1,30 @@
 {
   "name": "youtube_panga",
   "version": "2.0.0",
-  "description": "Fast YouTube audio downloader (yt-dlp + ffmpeg) with video/audio preview",
+  "description": "Self-hosted YouTube audio/video downloader (yt-dlp + ffmpeg) with a web UI",
   "main": "server.js",
+  "private": true,
   "scripts": {
-    "start": "node server.js",
-    "dev": "node server.js",
+    "start": "node --env-file-if-exists=.env server.js",
+    "dev": "node --env-file-if-exists=.env --watch-path=server.js --watch-path=lib --watch-path=public server.js",
     "setup": "node scripts/fetch-ytdlp.js",
-    "postinstall": "node scripts/fetch-ytdlp.js"
+    "setup:force": "node scripts/fetch-ytdlp.js --force",
+    "postinstall": "node scripts/fetch-ytdlp.js",
+    "lint": "eslint .",
+    "format": "prettier --write \"**/*.{js,json,md}\"",
+    "format:check": "prettier --check \"**/*.{js,json,md}\"",
+    "check": "npm run lint && npm run format:check"
   },
   "engines": {
-    "node": ">=18.17"
+    "node": ">=22.12"
   },
-  "keywords": ["youtube", "mp3", "yt-dlp", "ffmpeg", "downloader"],
+  "keywords": [
+    "youtube",
+    "mp3",
+    "yt-dlp",
+    "ffmpeg",
+    "downloader"
+  ],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
@@ -20,10 +32,15 @@
     "content-disposition": "^1.0.0",
     "cors": "^2.8.6",
     "express": "^5.2.1",
-    "ffmpeg-static": "^5.3.0",
-    "fluent-ffmpeg": "^2.1.3"
+    "ffmpeg-static": "^5.3.0"
   },
   "allowScripts": {
     "ffmpeg-static@5.3.0": true
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.14.0",
+    "globals": "^17.14.0",
+    "prettier": "^3.10.1"
   }
 }

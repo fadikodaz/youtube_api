@@ -74,7 +74,7 @@ function semaphore(max, maxWaiting) {
       next();
     }
   };
-  return async (fn) => {
+  const run = async (fn) => {
     if (active >= max) {
       if (waiting.length >= maxWaiting) throw ytdlp.err('BUSY');
       await new Promise((resolve) => waiting.push(resolve));
@@ -87,6 +87,8 @@ function semaphore(max, maxWaiting) {
       release();
     }
   };
+  run.busy = () => active > 0 || waiting.length > 0;
+  return run;
 }
 
 const app = express();
@@ -313,8 +315,7 @@ const PERMANENT = new Set(['PRIVATE', 'MEMBERS_ONLY', 'REMOVED', 'BAD_URL', 'LIV
 
 // "post_live" = stream just ended and is still being processed by YouTube;
 // it can't be downloaded reliably yet.
-const isLive = (data) =>
-  !!data.is_live || ['is_live', 'is_upcoming', 'post_live'].includes(data.live_status);
+const isLive = (data) => !!data.is_live || ['is_live', 'is_upcoming', 'post_live'].includes(data.live_status);
 
 function buildInfo(data, url) {
   let audio = null;
@@ -550,18 +551,62 @@ app.get('/api/jobs/:id/file', rateLimit({ max: 60 }), (req, res) => {
   // Range/HEAD support and ETag.
   const name = job.spec.filename;
   res.setHeader('Content-Disposition', contentDisposition(name, { fallback: asciiFallback(name) }));
-  res.sendFile(
-    job.file,
-    { headers: { 'Cache-Control': 'private, no-store' }, dotfiles: 'allow' },
-    (e) => {
-      if (e && !res.headersSent) sendError(res, ytdlp.err('UNKNOWN', 'Could not send the file.'));
-    }
-  );
+  res.sendFile(job.file, { headers: { 'Cache-Control': 'private, no-store' }, dotfiles: 'allow' }, (e) => {
+    if (e && !res.headersSent) sendError(res, ytdlp.err('UNKNOWN', 'Could not send the file.'));
+  });
 });
 
-// Self-update yt-dlp. Needs ALLOW_UPDATE=1 AND a valid ADMIN_TOKEN.
-// Only one update runs at a time; concurrent calls share its result.
+// One yt-dlp update at a time; concurrent callers share the result.
+// (yt-dlp's own updater downloads the official release and verifies it.)
 let updating = null;
+function updateYtdlp(reason) {
+  if (!updating) {
+    updating = (async () => {
+      const before = await ytdlp.version().catch(() => null);
+      const output = await ytdlp.update();
+      const after = await ytdlp.version(true);
+      infoCache.clear();
+      failCache.clear();
+      lastUpdateCheck = Date.now();
+      console.log(`[update] ${reason}: yt-dlp ${before} -> ${after}`);
+      return { output: output.slice(-4000), version: after, previous: before };
+    })().finally(() => {
+      updating = null;
+    });
+  }
+  return updating;
+}
+
+// Automatic updates: YouTube changes often and old yt-dlp versions stop
+// working within weeks. Every AUTO_UPDATE_HOURS (default 24, 0 = off) the
+// server updates yt-dlp, but only while no download or extraction is running.
+const AUTO_UPDATE_HOURS = (() => {
+  const n = Number(process.env.AUTO_UPDATE_HOURS ?? 24);
+  return Number.isFinite(n) && n >= 0 ? n : 24;
+})();
+// Start counting from when the binary was installed/updated, so a server that
+// was off for a week updates shortly after it starts.
+let lastUpdateCheck = (() => {
+  try {
+    return fs.statSync(ytdlp.binary()).mtimeMs;
+  } catch {
+    return Date.now();
+  }
+})();
+if (AUTO_UPDATE_HOURS > 0) {
+  setInterval(
+    () => {
+      if (Date.now() - lastUpdateCheck < AUTO_UPDATE_HOURS * 3600 * 1000) return;
+      const s = jobs.stats();
+      if (s.running || s.queued || extractLimit.busy() || !ytdlp.hasBinary()) return; // try again later
+      lastUpdateCheck = Date.now();
+      updateYtdlp('auto-update').catch((e) => console.warn('[update] auto-update failed:', e.code || '', e.message));
+    },
+    5 * 60 * 1000
+  ).unref();
+}
+
+// Manual update. Needs ALLOW_UPDATE=1 AND a valid ADMIN_TOKEN.
 app.post('/api/admin/update-ytdlp', rateLimit({ max: 5 }), async (req, res) => {
   if (process.env.ALLOW_UPDATE !== '1' || !ADMIN_TOKEN) {
     return res.status(403).json({
@@ -574,17 +619,7 @@ app.post('/api/admin/update-ytdlp', rateLimit({ max: 5 }), async (req, res) => {
     return res.status(401).json({ error: 'Not authorized.', code: 'UNAUTHORIZED', hint: '' });
   }
   try {
-    if (!updating) {
-      updating = (async () => {
-        const output = await ytdlp.update();
-        infoCache.clear();
-        failCache.clear();
-        return { output: output.slice(-4000), version: await ytdlp.version(true) };
-      })().finally(() => {
-        updating = null;
-      });
-    }
-    res.json({ ok: true, ...(await updating) });
+    res.json({ ok: true, ...(await updateYtdlp('admin request')) });
   } catch (e) {
     sendError(res, e);
   }
@@ -594,7 +629,10 @@ app.use('/api', (req, res) => res.status(404).json({ error: 'Not found', code: '
 
 // ---------------------------------------------------------------- start ------
 
-const server = app.listen(PORT, (err) => {
+// HOST=127.0.0.1 keeps the app private behind a reverse proxy (nginx, Caddy,
+// Cloudflare Tunnel). Default: all interfaces.
+const HOST = process.env.HOST || undefined;
+const server = app.listen(PORT, HOST, (err) => {
   // Express 5 passes listen errors (e.g. EADDRINUSE) to this callback.
   if (err) {
     if (err.code === 'EADDRINUSE') {
@@ -604,13 +642,17 @@ const server = app.listen(PORT, (err) => {
     }
     process.exit(1);
   }
-  console.log(`YouTube downloader running at http://localhost:${PORT}`);
+  console.log(`YouTube downloader running at http://${HOST && HOST !== '0.0.0.0' ? HOST : 'localhost'}:${PORT}`);
   console.log('yt-dlp :', ytdlp.hasBinary() ? ytdlp.binary() : 'MISSING — run: npm run setup');
   console.log('ffmpeg :', jobs.ffmpeg || 'MISSING');
   console.log('cookies:', ytdlp.cookiesFile() ? 'configured' : 'none (public videos only)');
   console.log('jobs   :', jobs.dir);
   console.log('admin  :', ADMIN_TOKEN ? 'enabled (ADMIN_TOKEN set)' : 'disabled');
   if (!corsOrigins.length) console.log('cors   : same-origin only');
+  console.log(
+    'update :',
+    AUTO_UPDATE_HOURS > 0 ? `yt-dlp auto-update every ${AUTO_UPDATE_HOURS}h when idle` : 'auto-update off'
+  );
 });
 
 // Stop cleanly: refuse new connections, cancel running downloads (killing

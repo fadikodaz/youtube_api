@@ -1,0 +1,38 @@
+# systemd unit for the YouTube downloader.
+# Installed by deploy/vps-setup.sh to /etc/systemd/system/ytdl.service.
+#   sudo systemctl status ytdl      sudo journalctl -u ytdl -f
+[Unit]
+Description=YouTube downloader (yt-dlp + ffmpeg)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ytdl
+Group=ytdl
+WorkingDirectory=/opt/ytdl
+EnvironmentFile=-/opt/ytdl/.env
+Environment=NODE_ENV=production
+ExecStart=/usr/bin/node /opt/ytdl/server.js
+Restart=always
+RestartSec=5
+# Give running downloads a moment to be cancelled cleanly, then kill the rest
+# (yt-dlp/ffmpeg children included).
+KillMode=mixed
+TimeoutStopSec=15
+
+# Hardening: the app may only write to its own bin/ (yt-dlp self-update),
+# .cache/ (yt-dlp's player cache) and its private /tmp (downloads in progress).
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/ytdl/bin /opt/ytdl/.cache
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+
+[Install]
+WantedBy=multi-user.target

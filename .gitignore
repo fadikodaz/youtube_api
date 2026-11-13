@@ -1,6 +1,12 @@
 node_modules/
 bin/
-bin/yt-dlp.exe
+.cache/
+
+# Secrets
 cookies.txt
+*.cookies.txt
 .env
+.env.*
+!.env.example
+
 *.log
