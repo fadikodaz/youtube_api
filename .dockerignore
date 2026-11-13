@@ -1,2 +1,16 @@
 node_modules/
 bin/
+
+# Secrets: never bake these into an image. Mount them at runtime instead.
+cookies.txt
+*.cookies.txt
+.env
+.env.*
+
+# Not needed in the image
+.git/
+.gitignore
+*.log
+api/
+deploy/
+README.md
