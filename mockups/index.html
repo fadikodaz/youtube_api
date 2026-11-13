@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Design options</title>
+    <link rel="stylesheet" href="mockups.css" />
+    <style>
+      .grid {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 16px 24px 48px;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(620px, 1fr));
+        gap: 24px;
+      }
+      .opt {
+        display: block;
+        background: #fff;
+        border-radius: 14px;
+        padding: 14px;
+        text-decoration: none;
+        color: inherit;
+        box-shadow: 0 2px 8px rgb(0 0 0 / 0.08);
+      }
+      .opt:hover {
+        outline: 3px solid #2f5bea;
+      }
+      .opt img {
+        width: 100%;
+        border-radius: 8px;
+        display: block;
+        margin-top: 10px;
+      }
+      .opt h2 {
+        margin: 0;
+        font-size: 19px;
+      }
+      .opt p {
+        margin: 4px 0 0;
+        color: #3d434b;
+      }
+    </style>
+  </head>
+  <body>
+    <header class="mock-head">
+      <h1>Pick a design</h1>
+      <p>
+        All four use the same simple flow: paste link, Fetch, pick MP4 or MP3, Download (the button shows progress),
+        file saves automatically. No history, no downloads panel. Names are interchangeable with any design. Click an
+        option to see it full size.
+      </p>
+    </header>
+    <div class="grid">
+      <a class="opt" href="e-pocket-bold.html" style="grid-column: 1 / -1">
+        <h2>E. YTPocket: D's layout with C's bold style (your pick)</h2>
+        <p>Big paste area and bottom-sheet formats, in yellow with thick outlines. Includes a desktop layout.</p>
+        <img src="png/e-pocket-bold.png" alt="Option E screens" />
+      </a>
+      <a class="opt" href="a-familiar.html">
+        <h2>A. Familiar converter (YTDownly)</h2>
+        <p>Looks like tools people already use. Safest, least memorable.</p>
+        <img src="png/a-familiar.png" alt="Option A screens" />
+      </a>
+      <a class="opt" href="b-tapedeck.html">
+        <h2>B. Tape deck, simplified (YTSavvy)</h2>
+        <p>Today's design, simplified. Most distinctive; amber meter progress.</p>
+        <img src="png/b-tapedeck.png" alt="Option B screens" />
+      </a>
+      <a class="opt" href="c-playful.html">
+        <h2>C. Bold and playful (TubeSnag)</h2>
+        <p>Yellow, thick outlines, chunky buttons. Fun and loud.</p>
+        <img src="png/c-playful.png" alt="Option C screens" />
+      </a>
+      <a class="opt" href="d-pocket.html">
+        <h2>D. Mobile app feel (YTPocket)</h2>
+        <p>Big paste area, formats in a bottom sheet. Feels like an installed app.</p>
+        <img src="png/d-pocket.png" alt="Option D screens" />
+      </a>
+    </div>
+  </body>
+</html>

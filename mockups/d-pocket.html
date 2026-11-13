@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Option D: Mobile app feel (YTPocket)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="mockups.css" />
+    <style>
+      .app {
+        --bg: #eef3f1;
+        --card: #ffffff;
+        --ink: #102a26;
+        --muted: #5d716d;
+        --line: #dce6e3;
+        --teal: #0f766e;
+        --teal-soft: #d6efe9;
+        font-family: Figtree, system-ui, sans-serif;
+        background: var(--bg);
+        color: var(--ink);
+        position: relative;
+      }
+      .top {
+        padding: 18px 18px 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 800;
+        font-size: 20px;
+      }
+      .top i {
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        background: var(--teal);
+      }
+      .big {
+        margin: 16px;
+        background: var(--card);
+        border-radius: 24px;
+        padding: 20px;
+        box-shadow: 0 1px 0 var(--line);
+      }
+      .big h2 {
+        margin: 0 0 4px;
+        font-size: 24px;
+        line-height: 1.2;
+      }
+      .big p {
+        margin: 0 0 16px;
+        color: var(--muted);
+      }
+      .paste {
+        height: 120px;
+        border: 2px dashed #a9c6bf;
+        border-radius: 18px;
+        display: grid;
+        place-items: center;
+        text-align: center;
+        color: var(--teal);
+        font-weight: 700;
+      }
+      .paste small {
+        display: block;
+        color: var(--muted);
+        font-weight: 500;
+      }
+      .field {
+        height: 52px;
+        border-radius: 14px;
+        background: var(--bg);
+        display: flex;
+        align-items: center;
+        padding: 0 14px;
+        margin-top: 12px;
+        color: var(--muted);
+      }
+      .cta {
+        margin-top: 12px;
+        height: 54px;
+        border-radius: 14px;
+        background: var(--teal);
+        color: #fff;
+        font-weight: 800;
+        display: grid;
+        place-items: center;
+        font-size: 17px;
+      }
+      .video {
+        margin: 16px;
+        border-radius: 24px;
+        overflow: hidden;
+        background: var(--card);
+      }
+      .video img {
+        width: 100%;
+        aspect-ratio: 16/9;
+        object-fit: cover;
+      }
+      .video div {
+        padding: 12px 16px 16px;
+      }
+      .video b {
+        display: block;
+        font-size: 17px;
+        line-height: 1.25;
+      }
+      .video span {
+        color: var(--muted);
+        font-size: 14px;
+      }
+      .sheet {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: var(--card);
+        border-radius: 26px 26px 0 0;
+        padding: 10px 16px 22px;
+        box-shadow: 0 -8px 30px rgb(16 42 38 / 0.12);
+      }
+      .grab {
+        width: 40px;
+        height: 5px;
+        border-radius: 3px;
+        background: var(--line);
+        margin: 0 auto 12px;
+      }
+      .seg {
+        display: flex;
+        background: var(--bg);
+        border-radius: 14px;
+        padding: 4px;
+        margin-bottom: 10px;
+      }
+      .seg div {
+        flex: 1;
+        text-align: center;
+        padding: 9px;
+        border-radius: 11px;
+        font-weight: 700;
+        color: var(--muted);
+      }
+      .seg .on {
+        background: var(--card);
+        color: var(--ink);
+        box-shadow: 0 1px 3px rgb(0 0 0 / 0.1);
+      }
+      .opt {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 6px;
+        border-radius: 14px;
+        position: relative;
+        overflow: hidden;
+      }
+      .opt .q {
+        flex: 1;
+        font-weight: 700;
+        font-size: 16px;
+        position: relative;
+      }
+      .opt .q small {
+        display: block;
+        font-weight: 500;
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .opt .ic {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        background: var(--teal-soft);
+        color: var(--teal);
+        display: grid;
+        place-items: center;
+        font-weight: 800;
+        position: relative;
+      }
+      .opt.busy {
+        background: var(--teal-soft);
+      }
+      .opt.busy::before {
+        content: '';
+        position: absolute;
+        inset: 0 58% 0 0;
+        background: #b5e2d7;
+      }
+      .opt.busy .ic {
+        background: var(--card);
+        font-size: 12px;
+      }
+      .opt.done .ic {
+        background: var(--teal);
+        color: #fff;
+      }
+    </style>
+  </head>
+  <body>
+    <header class="mock-head">
+      <h1>Option D: Mobile app feel (name: YTPocket)</h1>
+      <p>
+        Built like a phone app: one big paste area, then the formats slide up in a bottom sheet you reach with your
+        thumb. Calm teal, rounded and soft. Feels like a real installed app (pairs well with "Add to home screen").
+        <a href="index.html">Back to all options</a>
+      </p>
+    </header>
+    <div class="frames" id="frames"></div>
+    <script>
+      const thumb = 'https://i.ytimg.com/vi/aqz-KE-bpKQ/hqdefault.jpg';
+      const rows = [
+        ['1080p HD', '255 MB'],
+        ['720p', '153 MB'],
+        ['480p', '37 MB'],
+        ['360p', '27 MB'],
+      ];
+      function opt(r, i, step) {
+        let cls = '',
+          ic = '↓',
+          sub = r[1];
+        if (i === 0 && step === 3) {
+          cls = 'busy';
+          ic = '42%';
+          sub = 'Preparing, tap to cancel';
+        }
+        if (i === 0 && step === 4) {
+          cls = 'done';
+          ic = '✓';
+          sub = 'Saved to Downloads, tap to save again';
+        }
+        return `<div class="opt ${cls}"><div class="q">${r[0]}<small>${sub}</small></div><div class="ic">${ic}</div></div>`;
+      }
+      function screen(step) {
+        const top = '<div class="top"><i></i>YTPocket</div>';
+        if (step === 1)
+          return `${top}<div class="big"><h2>Download YouTube videos and MP3</h2><p>Save any video to your phone.</p>
+            <div class="paste">Tap to paste link<small>or share from the YouTube app</small></div>
+            <div class="field">youtube.com/watch?v=…</div><div class="cta">Get video</div></div>`;
+        return `${top}<div class="video"><img src="${thumb}" alt=""><div><b>Big Buck Bunny 60fps 4K - Official Blender Foundation Short Film</b><span>Blender, 10:35</span></div></div>
+          <div class="sheet"><div class="grab"></div><div class="seg"><div class="on">Video</div><div>Audio</div></div>
+          ${rows.map((r, i) => opt(r, i, step)).join('')}</div>`;
+      }
+      const caps = [
+        '1. Paste a link',
+        '2. Pick a format (bottom sheet)',
+        '3. Preparing',
+        '4. Done (saved automatically)',
+      ];
+      document.getElementById('frames').innerHTML = caps
+        .map(
+          (c, i) =>
+            `<figure><figcaption>${c}</figcaption><div class="phone"><div class="app">${screen(i + 1)}</div></div></figure>`
+        )
+        .join('');
+    </script>
+  </body>
+</html>

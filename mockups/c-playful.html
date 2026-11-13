@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Option C: Bold and playful (TubeSnag)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="mockups.css" />
+    <style>
+      .app {
+        --bg: #ffd43b;
+        --ink: #161616;
+        --card: #fffdf5;
+        --pop: #ff5d8f;
+        --mint: #3ddc97;
+        font-family: 'Bricolage Grotesque', system-ui, sans-serif;
+        background: var(--bg);
+        color: var(--ink);
+        padding: 18px 16px;
+      }
+      .brand {
+        font-weight: 800;
+        font-size: 24px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .brand i {
+        width: 30px;
+        height: 30px;
+        border: 3px solid var(--ink);
+        border-radius: 9px;
+        background: var(--pop);
+        display: grid;
+        place-items: center;
+        font-style: normal;
+        font-size: 15px;
+      }
+      h2 {
+        font-size: 34px;
+        line-height: 1;
+        margin: 22px 0 8px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+      }
+      .sub {
+        margin: 0 0 16px;
+        font-size: 15px;
+        font-weight: 500;
+      }
+      .box {
+        border: 3px solid var(--ink);
+        border-radius: 16px;
+        background: var(--card);
+        box-shadow: 5px 5px 0 var(--ink);
+      }
+      .field {
+        padding: 14px;
+        font-weight: 500;
+        color: #6b6b6b;
+      }
+      .field.val {
+        color: var(--ink);
+      }
+      .go {
+        margin-top: 12px;
+        height: 54px;
+        border: 3px solid var(--ink);
+        border-radius: 16px;
+        background: var(--ink);
+        color: #fff;
+        font-weight: 800;
+        font-size: 18px;
+        display: grid;
+        place-items: center;
+      }
+      .card {
+        margin-top: 16px;
+        padding: 12px;
+      }
+      .card img {
+        width: 100%;
+        aspect-ratio: 16/9;
+        object-fit: cover;
+        border-radius: 10px;
+        border: 3px solid var(--ink);
+      }
+      .card b {
+        display: block;
+        margin: 10px 0 0;
+        font-size: 17px;
+        line-height: 1.2;
+      }
+      .tabs {
+        display: flex;
+        gap: 8px;
+        margin: 12px 0 8px;
+      }
+      .tabs div {
+        flex: 1;
+        text-align: center;
+        padding: 8px;
+        border: 3px solid var(--ink);
+        border-radius: 12px;
+        font-weight: 800;
+      }
+      .tabs .on {
+        background: var(--pop);
+      }
+      .fmt {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 0;
+      }
+      .q {
+        flex: 1;
+        font-weight: 800;
+        font-size: 17px;
+      }
+      .q small {
+        font-weight: 500;
+        font-size: 13px;
+        margin-left: 6px;
+      }
+      .dl {
+        width: 122px;
+        height: 42px;
+        border: 3px solid var(--ink);
+        border-radius: 12px;
+        background: var(--mint);
+        display: grid;
+        place-items: center;
+        font-weight: 800;
+      }
+      .prog {
+        width: 122px;
+        height: 42px;
+        border: 3px solid var(--ink);
+        border-radius: 12px;
+        background: #fff;
+        position: relative;
+        overflow: hidden;
+      }
+      .prog i {
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: 42%;
+        background: repeating-linear-gradient(45deg, var(--pop) 0 8px, #ff86ab 8px 16px);
+      }
+      .prog span {
+        position: relative;
+        display: grid;
+        place-items: center;
+        height: 100%;
+        font-weight: 800;
+      }
+      .done {
+        width: 122px;
+        text-align: center;
+        font-weight: 800;
+      }
+      .done small {
+        display: block;
+        font-weight: 500;
+        text-decoration: underline;
+      }
+    </style>
+  </head>
+  <body>
+    <header class="mock-head">
+      <h1>Option C: Bold and playful (name: TubeSnag)</h1>
+      <p>
+        Bright yellow, thick black outlines, chunky buttons and a big headline. Feels fun and young; fits gaming and
+        music audiences. Very recognisable, but loud. <a href="index.html">Back to all options</a>
+      </p>
+    </header>
+    <div class="frames" id="frames"></div>
+    <script>
+      const thumb = 'https://i.ytimg.com/vi/aqz-KE-bpKQ/hqdefault.jpg';
+      const rows = [
+        ['1080p', '255 MB'],
+        ['720p', '153 MB'],
+        ['480p', '37 MB'],
+      ];
+      function action(i, step) {
+        if (i !== 0 || step < 3) return '<div class="dl">Download</div>';
+        if (step === 3) return '<div class="prog"><i></i><span>42% ✕</span></div>';
+        return '<div class="done">Got it! ✓<small>Download again</small></div>';
+      }
+      function screen(step) {
+        const top = '<div class="brand"><i>↓</i>TubeSnag</div>';
+        if (step === 1)
+          return `${top}<h2>Snag any YouTube video or MP3.</h2><p class="sub">Paste the link. Pick a quality. Done.</p>
+            <div class="box field">Paste YouTube link…</div><div class="go">Snag it</div>`;
+        return `${top}<div class="box field val" style="margin-top:16px">youtu.be/aqz-KE-bpKQ</div>
+          <div class="box card"><img src="${thumb}" alt=""><b>Big Buck Bunny 60fps 4K - Official Blender Foundation Short Film</b>
+          <div class="tabs"><div class="on">MP4</div><div>MP3</div></div>
+          ${rows.map((r, i) => `<div class="fmt"><div class="q">${r[0]}<small>${r[1]}</small></div>${action(i, step)}</div>`).join('')}
+          </div>`;
+      }
+      const caps = ['1. Paste a link', '2. Pick a format', '3. Preparing', '4. Done (saved automatically)'];
+      document.getElementById('frames').innerHTML = caps
+        .map(
+          (c, i) =>
+            `<figure><figcaption>${c}</figcaption><div class="phone"><div class="app">${screen(i + 1)}</div></div></figure>`
+        )
+        .join('');
+    </script>
+  </body>
+</html>

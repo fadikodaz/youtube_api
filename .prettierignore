@@ -1,3 +1,5 @@
 node_modules/
 bin/
 package-lock.json
+# Third-party skills, kept exactly as published
+.opencode/skills/

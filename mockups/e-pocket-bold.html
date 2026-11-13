@@ -1,0 +1,369 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Option E: YTPocket, D layout + C style</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="mockups.css" />
+    <style>
+      .app {
+        --bg: #ffd43b;
+        --ink: #161616;
+        --card: #fffdf5;
+        --pop: #ff5d8f;
+        --mint: #3ddc97;
+        --muted: #55524a;
+        font-family: 'Bricolage Grotesque', system-ui, sans-serif;
+        background: var(--bg);
+        color: var(--ink);
+        position: relative;
+      }
+      .box {
+        border: 3px solid var(--ink);
+        background: var(--card);
+        box-shadow: 4px 4px 0 var(--ink);
+      }
+      .top {
+        padding: 16px 18px 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 800;
+        font-size: 22px;
+      }
+      .logo {
+        width: 32px;
+        height: 32px;
+        border: 3px solid var(--ink);
+        border-radius: 10px;
+        background: var(--pop);
+        display: grid;
+        place-items: center;
+        font-size: 16px;
+      }
+      .big {
+        margin: 16px;
+        border-radius: 24px;
+        padding: 20px;
+      }
+      .big h2 {
+        margin: 0 0 6px;
+        font-size: 30px;
+        line-height: 1.02;
+        letter-spacing: -0.02em;
+        font-weight: 800;
+      }
+      .big p {
+        margin: 0 0 16px;
+        color: var(--muted);
+        font-weight: 500;
+      }
+      .paste {
+        height: 112px;
+        border: 3px dashed var(--ink);
+        border-radius: 18px;
+        display: grid;
+        place-content: center;
+        text-align: center;
+        font-weight: 800;
+        font-size: 18px;
+        background: #fff4c2;
+      }
+      .paste small {
+        display: block;
+        color: var(--muted);
+        font-weight: 500;
+        font-size: 13px;
+      }
+      .field {
+        height: 52px;
+        border: 3px solid var(--ink);
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        padding: 0 14px;
+        margin-top: 12px;
+        color: #77736a;
+        background: #fff;
+        font-weight: 500;
+      }
+      .cta {
+        margin-top: 12px;
+        height: 56px;
+        border-radius: 16px;
+        background: var(--ink);
+        color: #fff;
+        font-weight: 800;
+        display: grid;
+        place-items: center;
+        font-size: 19px;
+      }
+      .trust {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+        margin: 0 16px;
+      }
+      .trust span {
+        border: 2px solid var(--ink);
+        border-radius: 99px;
+        padding: 3px 10px;
+        font-weight: 700;
+        font-size: 13px;
+        background: var(--card);
+      }
+      .video {
+        margin: 14px 16px;
+        border-radius: 22px;
+        overflow: hidden;
+      }
+      .video img {
+        width: 100%;
+        aspect-ratio: 16/9;
+        object-fit: cover;
+        border-bottom: 3px solid var(--ink);
+        display: block;
+      }
+      .video div {
+        padding: 10px 14px 12px;
+      }
+      .video b {
+        display: block;
+        font-size: 17px;
+        line-height: 1.2;
+      }
+      .video span {
+        color: var(--muted);
+        font-size: 14px;
+        font-weight: 500;
+      }
+      .sheet {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        border: 3px solid var(--ink);
+        border-bottom: 0;
+        background: var(--card);
+        border-radius: 26px 26px 0 0;
+        padding: 10px 14px 20px;
+      }
+      .grab {
+        width: 44px;
+        height: 6px;
+        border-radius: 3px;
+        background: var(--ink);
+        margin: 0 auto 12px;
+      }
+      .seg {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 8px;
+      }
+      .seg div {
+        flex: 1;
+        text-align: center;
+        padding: 9px;
+        border: 3px solid var(--ink);
+        border-radius: 14px;
+        font-weight: 800;
+      }
+      .seg .on {
+        background: var(--pop);
+      }
+      .opt {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 8px 6px;
+        border-radius: 16px;
+        position: relative;
+        overflow: hidden;
+        border: 3px solid transparent;
+      }
+      .opt .q {
+        flex: 1;
+        font-weight: 800;
+        font-size: 17px;
+        position: relative;
+      }
+      .opt .q small {
+        display: block;
+        font-weight: 500;
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .ic {
+        width: 46px;
+        height: 46px;
+        border-radius: 50%;
+        border: 3px solid var(--ink);
+        background: var(--mint);
+        display: grid;
+        place-items: center;
+        font-weight: 800;
+        position: relative;
+        font-size: 18px;
+      }
+      .opt.busy {
+        border-color: var(--ink);
+        background: #fff;
+      }
+      .opt.busy::before {
+        content: '';
+        position: absolute;
+        inset: 0 58% 0 0;
+        background: repeating-linear-gradient(45deg, #ffc2d5 0 8px, #ffd9e5 8px 16px);
+      }
+      .opt.busy .ic {
+        background: #fff;
+        font-size: 13px;
+      }
+      .opt.done .ic {
+        background: var(--ink);
+        color: var(--mint);
+      }
+      .toast {
+        position: absolute;
+        left: 14px;
+        right: 14px;
+        top: 64px;
+        border-radius: 16px;
+        padding: 10px 14px;
+        font-weight: 700;
+        background: var(--mint);
+      }
+      .toast small {
+        display: block;
+        font-weight: 500;
+      }
+
+      /* desktop frame */
+      .desk {
+        width: 1180px;
+        height: 700px;
+        border-radius: 16px;
+        overflow: hidden;
+        border: 8px solid #111;
+        box-shadow: 0 10px 30px rgb(0 0 0 / 0.18);
+      }
+      .desk .app {
+        height: 100%;
+      }
+      .desk-grid {
+        display: grid;
+        grid-template-columns: 1fr 420px;
+        gap: 22px;
+        padding: 18px 28px;
+        align-items: start;
+      }
+      .desk h2 {
+        font-size: 44px;
+      }
+      .panel {
+        border-radius: 24px;
+        padding: 14px;
+      }
+      .desk-wide {
+        grid-column: 1 / -1;
+      }
+    </style>
+  </head>
+  <body>
+    <header class="mock-head">
+      <h1>Option E: YTPocket (D's layout with C's bold style)</h1>
+      <p>
+        D's structure (big paste area, formats in a bottom sheet, round download buttons) in C's look (yellow, thick
+        black outlines, offset shadows, pink and mint). On desktop the format sheet becomes a panel beside the video.
+        <a href="index.html">Back to all options</a>
+      </p>
+    </header>
+    <div class="frames" id="frames"></div>
+    <div class="frames">
+      <figure>
+        <figcaption>Desktop (same app, wider screen)</figcaption>
+        <div class="desk">
+          <div class="app">
+            <div class="top"><span class="logo">↓</span>YTPocket</div>
+            <div class="desk-grid">
+              <div>
+                <div class="box big" style="margin: 0 0 16px">
+                  <h2>Download YouTube videos and MP3</h2>
+                  <div style="display: flex; gap: 10px">
+                    <div class="field" style="flex: 1; margin: 0">youtu.be/aqz-KE-bpKQ</div>
+                    <div class="cta" style="margin: 0; padding: 0 26px">Get video</div>
+                  </div>
+                </div>
+                <div class="box video" style="margin: 0">
+                  <img src="https://i.ytimg.com/vi/aqz-KE-bpKQ/hqdefault.jpg" alt="" />
+                  <div>
+                    <b>Big Buck Bunny 60fps 4K - Official Blender Foundation Short Film</b><span>Blender, 10:35</span>
+                  </div>
+                </div>
+              </div>
+              <div class="box panel" id="deskPanel"></div>
+            </div>
+          </div>
+        </div>
+      </figure>
+    </div>
+    <script>
+      const thumb = 'https://i.ytimg.com/vi/aqz-KE-bpKQ/hqdefault.jpg';
+      const rows = [
+        ['1080p HD', '255 MB'],
+        ['720p', '153 MB'],
+        ['480p', '37 MB'],
+        ['360p', '27 MB'],
+      ];
+      function opt(r, i, step) {
+        let cls = '',
+          ic = '↓',
+          sub = r[1];
+        if (i === 0 && step === 3) {
+          cls = 'busy';
+          ic = '42%';
+          sub = 'Preparing, tap to cancel';
+        }
+        if (i === 0 && step === 4) {
+          cls = 'done';
+          ic = '✓';
+          sub = 'Saved. Tap to download again';
+        }
+        return `<div class="opt ${cls}"><div class="q">${r[0]}<small>${sub}</small></div><div class="ic">${ic}</div></div>`;
+      }
+      const options = (step) =>
+        `<div class="seg"><div class="on">Video MP4</div><div>Audio MP3</div></div>${rows.map((r, i) => opt(r, i, step)).join('')}`;
+      function screen(step) {
+        const top = '<div class="top"><span class="logo">↓</span>YTPocket</div>';
+        if (step === 1)
+          return `${top}<div class="box big"><h2>Download YouTube videos and MP3</h2><p>Free. No sign-up. MP4 up to 4K.</p>
+            <div class="paste">Tap to paste link<small>or share from the YouTube app</small></div>
+            <div class="field">youtube.com/watch?v=…</div><div class="cta">Get video</div></div>
+            <div class="trust"><span>MP4</span><span>MP3</span><span>Shorts</span><span>4K</span></div>`;
+        const toast =
+          step === 4
+            ? '<div class="box toast">Saved to your Downloads<small>Big Buck Bunny (1080p).mp4, 255 MB</small></div>'
+            : '';
+        return `${top}<div class="box video"><img src="${thumb}" alt=""><div><b>Big Buck Bunny 60fps 4K - Official Blender Foundation Short Film</b><span>Blender, 10:35</span></div></div>
+          ${toast}<div class="sheet"><div class="grab"></div>${options(step)}</div>`;
+      }
+      const caps = [
+        '1. Paste a link',
+        '2. Pick a format (bottom sheet)',
+        '3. Preparing',
+        '4. Done (saved automatically)',
+      ];
+      document.getElementById('frames').innerHTML = caps
+        .map(
+          (c, i) =>
+            `<figure><figcaption>${c}</figcaption><div class="phone"><div class="app">${screen(i + 1)}</div></div></figure>`
+        )
+        .join('');
+      document.getElementById('deskPanel').innerHTML = options(3);
+    </script>
+  </body>
+</html>

@@ -1,6 +1,6 @@
 {
-  "name": "youtube_panga",
-  "version": "2.0.0",
+  "name": "ytpocket",
+  "version": "3.0.0",
   "description": "Self-hosted YouTube audio/video downloader (yt-dlp + ffmpeg) with a web UI",
   "main": "server.js",
   "private": true,

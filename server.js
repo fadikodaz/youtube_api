@@ -134,15 +134,18 @@ if (process.env.LOG_REQUESTS !== '0') {
     next();
   });
 }
-// Security headers. 'unsafe-inline' is needed while the UI keeps its script
-// and styles inline in index.html.
+// Security headers. The UI has no inline script or style and embeds nothing,
+// so the CSP allows only files served by this app (plus YouTube thumbnails).
 const CSP = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline'",
-  "style-src 'self' 'unsafe-inline'",
+  "script-src 'self'",
+  "style-src 'self'",
+  "font-src 'self'",
   "img-src 'self' data: https://i.ytimg.com https://*.ytimg.com https://*.ggpht.com https://*.googleusercontent.com",
-  'frame-src https://www.youtube-nocookie.com https://www.youtube.com',
+  "frame-src 'none'",
   "connect-src 'self'",
+  "manifest-src 'self'",
+  "worker-src 'self'",
   "object-src 'none'",
   "base-uri 'none'",
   "form-action 'self'",
@@ -157,7 +160,19 @@ app.use((req, res, next) => {
   res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
   next();
 });
-app.use(express.static(path.join(__dirname, 'public'), { extensions: ['html'] }));
+// Static UI. Fonts and icons rarely change: cache for a week. Everything else
+// (HTML, JS, CSS, manifest, service worker) is revalidated on each load, so
+// an update reaches users immediately.
+app.use(
+  express.static(path.join(__dirname, 'public'), {
+    extensions: ['html'],
+    setHeaders(res, file) {
+      if (/\.(woff2|png|svg)$/.test(file)) res.setHeader('Cache-Control', 'public, max-age=604800');
+      else res.setHeader('Cache-Control', 'no-cache');
+      if (file.endsWith('.webmanifest')) res.setHeader('Content-Type', 'application/manifest+json');
+    },
+  })
+);
 
 // ---------------------------------------------------------------- helpers ---
 

@@ -1,0 +1,813 @@
+/* YTPocket: bold "sticker" style. Yellow ground, thick ink outlines with an
+   offset shadow, pink for the selected tab and progress, mint for download.
+   Phone first: the format list is a bottom-sheet-style panel; on wide screens
+   it sits beside the video. */
+
+@font-face {
+  font-family: 'Bricolage Grotesque';
+  font-style: normal;
+  font-weight: 200 800;
+  font-display: swap;
+  src: url('/fonts/bricolage-latin.woff2') format('woff2');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC,
+    U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Bricolage Grotesque';
+  font-style: normal;
+  font-weight: 200 800;
+  font-display: swap;
+  src: url('/fonts/bricolage-latin-ext.woff2') format('woff2');
+  unicode-range:
+    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F,
+    U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+/* ------------------------------------------------------------- tokens --- */
+/* The yellow look is the default everywhere. Dark is opt-in via the moon
+   button (data-theme="dark" on <html>, set by /theme.js before first paint). */
+:root {
+  color-scheme: light;
+  --bg: #ffd43b;
+  --card: #fffdf5;
+  --soft: #fff4c2; /* paste zone, hover */
+  --field: #ffffff;
+  --ink: #161616;
+  --muted: #55524a;
+  --outline: #161616;
+  --shadow: #161616;
+  --pop: #ff5d8f; /* selected tab, progress */
+  --pop-soft: #ffc2d5;
+  --pop-softer: #ffdfe9;
+  --mint: #3ddc97; /* download */
+  --on-color: #161616; /* text on pop / mint */
+  --danger: #c4202f;
+  --cta-bg: #161616;
+  --cta-ink: #ffffff;
+
+  --font:
+    'Bricolage Grotesque', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans', 'Noto Sans Arabic',
+    sans-serif;
+  --line: 3px;
+  --r-lg: 24px;
+  --r-md: 16px;
+  --r-sm: 12px;
+  --pad: clamp(14px, 4vw, 28px);
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --bg: #1c1b18;
+  --card: #2a2823;
+  --soft: #34312a;
+  --field: #1c1b18;
+  --ink: #fff8e1;
+  --muted: #c9c2ab;
+  --outline: #fff8e1;
+  --shadow: #ffd43b;
+  --pop: #ff5d8f;
+  --pop-soft: #6b2c41;
+  --pop-softer: #4a2532;
+  --mint: #3ddc97;
+  --on-color: #161616;
+  --danger: #ff8a95;
+  --cta-bg: #ffd43b;
+  --cta-ink: #161616;
+}
+
+/* Theme switch in the top bar */
+.theme-btn {
+  width: 44px;
+  height: 44px;
+  border: var(--line) solid var(--outline);
+  border-radius: 12px;
+  background: var(--card);
+  color: var(--ink);
+  display: grid;
+  place-items: center;
+  box-shadow: 3px 3px 0 var(--shadow);
+}
+.theme-btn svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.theme-btn:active {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 var(--shadow);
+}
+.topbar-end {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* --------------------------------------------------------------- base --- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+body {
+  margin: 0;
+  overflow-x: clip; /* offset shadows must never cause sideways scrolling */
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  color: var(--ink);
+  font: 500 1rem/1.45 var(--font);
+  -webkit-font-smoothing: antialiased;
+}
+h1,
+h2,
+p,
+ul {
+  margin: 0;
+}
+ul {
+  padding: 0;
+  list-style: none;
+}
+button,
+input {
+  font: inherit;
+  color: inherit;
+}
+button {
+  cursor: pointer;
+}
+button:disabled {
+  cursor: not-allowed;
+}
+img,
+svg {
+  display: block;
+}
+[hidden] {
+  display: none !important;
+}
+:focus-visible {
+  outline: 3px solid var(--pop);
+  outline-offset: 3px;
+}
+.visually-hidden {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.skip {
+  position: absolute;
+  left: 8px;
+  top: -80px;
+  z-index: 30;
+  padding: 10px 14px;
+  border: var(--line) solid var(--outline);
+  border-radius: var(--r-sm);
+  background: var(--card);
+  color: var(--ink);
+  font-weight: 700;
+}
+.skip:focus {
+  top: 8px;
+}
+
+/* The signature: card with a thick outline and a hard offset shadow. */
+.box {
+  background: var(--card);
+  border: var(--line) solid var(--outline);
+  box-shadow: 4px 4px 0 var(--shadow);
+}
+
+/* ------------------------------------------------------------ top bar --- */
+.topbar,
+.page,
+.foot {
+  width: 100%;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding-inline: var(--pad);
+}
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: max(16px, env(safe-area-inset-top));
+  padding-bottom: 14px;
+}
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  color: inherit;
+  text-decoration: none;
+  font-size: 1.4rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+.logo {
+  width: 34px;
+  height: 34px;
+  border: var(--line) solid var(--outline);
+  border-radius: 10px;
+  background: var(--pop);
+  display: grid;
+  place-items: center;
+}
+.logo svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: var(--on-color);
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.status {
+  padding: 4px 12px;
+  border: 2px solid var(--outline);
+  border-radius: 99px;
+  background: var(--card);
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--danger);
+}
+
+/* --------------------------------------------------------------- page --- */
+.page {
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr); /* let the column shrink below the input's default width */
+  gap: 16px;
+  align-content: start;
+  padding-bottom: 28px;
+}
+
+/* --------------------------------------------------------------- hero --- */
+.hero {
+  border-radius: var(--r-lg);
+  padding: clamp(18px, 4vw, 30px);
+  display: grid;
+  gap: 14px;
+}
+.hero h1 {
+  font-size: clamp(1.9rem, 6.5vw, 3rem);
+  line-height: 1.02;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  max-width: 16ch;
+}
+.lead {
+  color: var(--muted);
+  margin-top: -6px;
+}
+/* Big tap target for phones: reads the clipboard in one tap. */
+.paste-zone {
+  min-height: 108px;
+  border: var(--line) dashed var(--outline);
+  border-radius: 18px;
+  background: var(--soft);
+  font-size: 1.15rem;
+  font-weight: 800;
+  display: grid;
+  place-content: center;
+  gap: 2px;
+  text-align: center;
+}
+.paste-zone small {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--muted);
+}
+.paste-zone:hover {
+  border-style: solid;
+}
+.intake {
+  display: flex;
+  gap: 10px;
+  position: relative;
+}
+.intake input {
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+  height: 56px;
+  padding: 0 44px 0 16px;
+  border: var(--line) solid var(--outline);
+  border-radius: var(--r-md);
+  background: var(--field);
+  font-size: 1rem; /* 16px: no iOS zoom on focus */
+  outline: none;
+}
+.intake input::placeholder {
+  color: var(--muted);
+  opacity: 0.9;
+}
+.intake input:focus-visible {
+  box-shadow: 0 0 0 3px var(--pop);
+}
+.intake.dragging input {
+  border-style: dashed;
+  background: var(--soft);
+}
+.clear {
+  position: absolute;
+  top: 8px;
+  right: calc(10px + var(--cta-w, 150px) + 6px);
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  display: grid;
+  place-items: center;
+}
+.clear:hover {
+  background: var(--soft);
+}
+.clear svg {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+}
+.cta {
+  flex: none;
+  width: var(--cta-w, 150px);
+  height: 56px;
+  border: var(--line) solid var(--outline);
+  border-radius: var(--r-md);
+  background: var(--cta-bg);
+  color: var(--cta-ink);
+  font-weight: 800;
+  font-size: 1.1rem;
+  transition: transform 0.08s;
+}
+.cta:active:not(:disabled) {
+  transform: translate(2px, 2px);
+}
+.cta:disabled {
+  opacity: 0.7;
+}
+.alert {
+  border: var(--line) solid var(--danger);
+  border-radius: var(--r-sm);
+  padding: 10px 14px;
+  background: var(--card);
+}
+.alert strong {
+  display: block;
+  font-weight: 800;
+  color: var(--danger);
+}
+.alert span {
+  color: var(--muted);
+  font-size: 0.9375rem;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.chips li {
+  padding: 3px 12px;
+  border: 2px solid var(--outline);
+  border-radius: 99px;
+  background: var(--card);
+  font-size: 0.875rem;
+  font-weight: 800;
+}
+
+.howto {
+  border-radius: var(--r-lg);
+  padding: 18px 20px;
+}
+.howto h2 {
+  font-size: 1.15rem;
+  font-weight: 800;
+  margin-bottom: 8px;
+}
+.howto ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: step;
+  display: grid;
+  gap: 10px;
+}
+.howto li {
+  counter-increment: step;
+  display: grid;
+  grid-template-columns: 34px 1fr;
+  gap: 10px;
+  align-items: center;
+}
+.howto li::before {
+  content: counter(step);
+  width: 34px;
+  height: 34px;
+  border: var(--line) solid var(--outline);
+  border-radius: 50%;
+  background: var(--mint);
+  color: var(--on-color);
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+}
+
+/* Once a video is loaded the hero shrinks to just the link field. */
+.has-video .hero h1,
+.has-video .lead,
+.has-video .paste-zone,
+.has-video .chips,
+.has-video .howto {
+  display: none;
+}
+.has-video .hero {
+  padding: 12px;
+  border-radius: var(--r-md);
+}
+
+/* ------------------------------------------------------------- result --- */
+.result {
+  display: grid;
+  gap: 18px;
+  align-items: start;
+}
+.video {
+  border-radius: 22px;
+  overflow: hidden;
+}
+.screen {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  background: #000;
+  border-bottom: var(--line) solid var(--outline);
+}
+.screen img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.live {
+  position: absolute;
+  left: 10px;
+  top: 10px;
+  padding: 2px 10px;
+  border: 2px solid #161616;
+  border-radius: 99px;
+  background: var(--pop);
+  color: #161616;
+  font-weight: 800;
+  font-size: 0.875rem;
+}
+.video-text {
+  padding: 12px 16px 14px;
+}
+.video-text h2 {
+  font-size: 1.15rem;
+  line-height: 1.25;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.meta {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 0.9375rem;
+}
+.meta span:empty {
+  display: none;
+}
+
+.skeleton {
+  padding-bottom: 14px;
+  display: grid;
+  gap: 10px;
+}
+.sk {
+  background: var(--soft);
+  animation: breathe 1.3s ease-in-out infinite;
+}
+.sk-media {
+  aspect-ratio: 16 / 9;
+  border-bottom: var(--line) solid var(--outline);
+}
+.sk-line {
+  height: 16px;
+  margin: 0 16px;
+  border-radius: 6px;
+}
+.sk-line.short {
+  width: 40%;
+}
+@keyframes breathe {
+  50% {
+    opacity: 0.45;
+  }
+}
+
+/* ---------------------------------------------------------- the sheet --- */
+.sheet {
+  border-radius: 26px;
+  padding: 10px 14px 14px;
+}
+.grab {
+  width: 44px;
+  height: 6px;
+  margin: 0 auto 12px;
+  border-radius: 3px;
+  background: var(--outline);
+}
+.tabs {
+  display: flex;
+  gap: 8px;
+}
+.tabs button {
+  flex: 1;
+  min-height: 46px;
+  border: var(--line) solid var(--outline);
+  border-radius: 14px;
+  background: var(--card);
+  font-weight: 800;
+}
+.tabs button[aria-pressed='true'] {
+  background: var(--pop);
+  color: var(--on-color);
+}
+.tabs button:disabled {
+  opacity: 0.4;
+}
+.sheet-note {
+  margin-top: 10px;
+  font-weight: 700;
+  color: var(--danger);
+}
+.options {
+  display: grid;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+/* One format = one big button. Its background doubles as the progress bar. */
+.opt {
+  --p: 0;
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  min-height: 64px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 8px 8px 10px;
+  border: var(--line) solid transparent;
+  border-radius: var(--r-md);
+  background: none;
+  text-align: left;
+}
+.opt:hover:not(:disabled) {
+  background: var(--soft);
+}
+.opt::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  width: calc(var(--p) * 1%);
+  background: repeating-linear-gradient(45deg, var(--pop-soft) 0 8px, var(--pop-softer) 8px 16px);
+  transition: width 0.5s ease-out;
+}
+.opt-text {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+.opt-name {
+  display: block;
+  font-size: 1.1rem;
+  font-weight: 800;
+}
+.opt-sub {
+  display: block;
+  font-size: 0.875rem;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+.opt-icon {
+  position: relative;
+  flex: none;
+  width: 48px;
+  height: 48px;
+  border: var(--line) solid var(--outline);
+  border-radius: 50%;
+  background: var(--mint);
+  color: var(--on-color);
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+}
+.opt-icon svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.opt.busy {
+  border-color: var(--outline);
+  background: var(--card);
+}
+.opt.busy .opt-icon {
+  background: var(--card);
+  color: var(--ink);
+}
+/* Unknown progress (waiting, converting): stripes slide across. */
+.opt.busy.indeterminate::before {
+  width: 100%;
+  opacity: 0.6;
+  background-size: 200% 100%;
+  animation: slide 1.2s linear infinite;
+}
+@keyframes slide {
+  to {
+    background-position: -45px 0;
+  }
+}
+.opt.done .opt-icon {
+  background: var(--ink);
+  color: var(--mint);
+}
+.opt.failed .opt-sub {
+  color: var(--danger);
+  font-weight: 700;
+}
+.opt.failed .opt-icon {
+  background: var(--card);
+  color: var(--ink);
+}
+.opt:disabled .opt-name,
+.opt:disabled .opt-sub {
+  color: var(--muted);
+}
+.opt:disabled .opt-icon {
+  background: var(--soft);
+  color: var(--muted);
+  border-color: var(--muted);
+}
+
+/* --------------------------------------------------------------- foot --- */
+.foot {
+  padding-top: 6px;
+  padding-bottom: max(26px, env(safe-area-inset-bottom));
+  display: grid;
+  gap: 2px;
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+
+/* ------------------------------------------------------------- toasts --- */
+.toasts {
+  position: fixed;
+  z-index: 20;
+  top: max(12px, env(safe-area-inset-top));
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(440px, calc(100vw - 24px));
+  display: grid;
+  gap: 8px;
+}
+.toast {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 0 8px;
+  padding: 10px 6px 10px 14px;
+  border: var(--line) solid #161616;
+  border-radius: var(--r-md);
+  background: var(--mint);
+  color: #161616;
+  box-shadow: 4px 4px 0 #161616;
+  animation: drop 0.2s ease-out;
+}
+.toast.error {
+  background: var(--pop);
+}
+.toast.info {
+  background: #fffdf5;
+}
+.toast b {
+  font-weight: 800;
+}
+.toast p {
+  grid-column: 1;
+  font-size: 0.9375rem;
+  overflow-wrap: anywhere;
+}
+.toast button {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: inherit;
+  display: grid;
+  place-items: center;
+}
+.toast button:hover {
+  background: rgb(0 0 0 / 0.08);
+}
+.toast svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+}
+@keyframes drop {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+}
+
+/* --------------------------------------------------------- responsive --- */
+/* Phones: the format panel looks like a bottom sheet. */
+@media (max-width: 759px) {
+  .sheet {
+    border-radius: 26px 26px 18px 18px;
+  }
+  .intake {
+    --cta-w: 118px;
+  }
+}
+@media (max-width: 380px) {
+  .intake {
+    --cta-w: 96px;
+  }
+  .cta {
+    font-size: 1rem;
+  }
+}
+/* No paste zone on wide screens with a mouse; the field is enough there. */
+@media (min-width: 760px) and (hover: hover) and (pointer: fine) {
+  .paste-zone {
+    display: none;
+  }
+}
+/* Wide screens: video on the left, formats on the right. */
+@media (min-width: 760px) {
+  .result {
+    grid-template-columns: minmax(0, 1fr) minmax(340px, 420px);
+  }
+  .grab {
+    display: none;
+  }
+  .sheet {
+    padding-top: 14px;
+    position: sticky;
+    top: 16px;
+  }
+  .has-video .hero {
+    max-width: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+@media (forced-colors: active) {
+  .opt::before {
+    background: Highlight;
+    forced-color-adjust: none;
+  }
+}

@@ -1,6 +1,6 @@
-# YouTube Downloader
+# YTPocket
 
-A self-hosted YouTube audio and video downloader with a web UI, built on the
+A self-hosted YouTube video and MP3 downloader with a web UI, built on the
 official [yt-dlp](https://github.com/yt-dlp/yt-dlp) and
 [ffmpeg](https://ffmpeg.org/) (via `ffmpeg-static`). No third-party APIs, no
 accounts, files never leave your server except to the user who asked for them.
@@ -11,10 +11,19 @@ accounts, files never leave your server except to the user who asked for them.
   cover art), or the original audio track without re-encoding (`.m4a`/`.webm`).
 - **Video:** MP4 at every available resolution, 144p up to 4K / 60 fps, with
   codec and compatibility notes (H.264 plays everywhere).
-- **Job queue:** the server prepares the file while the page shows real
-  progress (percent, speed, ETA, queue position). Cancel anytime. Identical
-  requests share one job; finished files are kept 15 minutes for re-download.
-- **Inline preview**, recent history, paste button, drag & drop.
+- **Simple flow:** paste a link, tap **Get video**, pick MP4 or MP3 and a
+  quality. That row becomes its own progress bar (percent, speed, time left)
+  while the server prepares the file, then the file saves automatically. Tap
+  again to cancel, retry or download again. A reload keeps the current video
+  and any download in progress; nothing is kept as history.
+- **Job queue:** identical requests share one job; finished files are kept 15
+  minutes for re-download.
+- **Installable app (PWA):** add it to your home screen; on Android, share a
+  video from the YouTube app straight to YTPocket. Links like `/?url=...` or
+  `/?v=VIDEO_ID` open a video directly.
+- **Phone first:** big "tap to paste" area, bottom-sheet format list, inline
+  preview, drag & drop, light (yellow) and dark themes following your device,
+  keyboard and screen-reader friendly.
 - **Resilient:** fallback YouTube clients, retries, friendly error messages,
   metadata caching, automatic yt-dlp updates.
 - **Safe to expose:** strict input validation (only YouTube links), per-user

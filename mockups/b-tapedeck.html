@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Option B: Tape deck, simplified (YTSavvy)</title>
+    <link rel="stylesheet" href="mockups.css" />
+    <style>
+      @font-face {
+        font-family: Archivo;
+        src: url('../public/fonts/archivo-latin.woff2') format('woff2');
+        font-weight: 100 900;
+        font-stretch: 62% 125%;
+      }
+      .app {
+        --ground: #1f2326;
+        --panel: #282d31;
+        --inset: #22262a;
+        --line: #3a4045;
+        --ink: #eceeea;
+        --ink2: #9aa3a8;
+        --amber: #f2b43a;
+        --ok: #6cc08b;
+        --off: #353b40;
+        font-family: Archivo, system-ui, sans-serif;
+        background: var(--ground);
+        color: var(--ink);
+        padding: 18px 16px;
+      }
+      .brand {
+        font-weight: 800;
+        font-stretch: 125%;
+        font-size: 22px;
+        letter-spacing: 0.03em;
+        display: flex;
+        align-items: center;
+        gap: 9px;
+      }
+      .lamp {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: var(--off);
+      }
+      .lamp.on {
+        background: #f06a5e;
+      }
+      h2 {
+        font-size: 25px;
+        font-stretch: 112%;
+        line-height: 1.15;
+        margin: 22px 0 6px;
+      }
+      .sub {
+        color: var(--ink2);
+        font-size: 14px;
+        margin: 0 0 14px;
+      }
+      .row {
+        display: flex;
+        gap: 8px;
+      }
+      .field {
+        flex: 1;
+        min-width: 0;
+        height: 52px;
+        border: 1px solid #4f565c;
+        background: var(--panel);
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        padding: 0 12px;
+        color: var(--ink2);
+      }
+      .field.val {
+        color: var(--ink);
+      }
+      .btn {
+        height: 52px;
+        padding: 0 18px;
+        border-radius: 10px;
+        background: var(--amber);
+        color: #1d2326;
+        font-weight: 700;
+        display: grid;
+        place-items: center;
+      }
+      .card {
+        margin-top: 16px;
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 12px;
+      }
+      .card img {
+        width: 100%;
+        aspect-ratio: 16/9;
+        object-fit: cover;
+        border-radius: 10px;
+      }
+      .card b {
+        display: block;
+        margin: 10px 0 2px;
+        font-size: 16px;
+        line-height: 1.3;
+      }
+      .meta {
+        font-size: 13px;
+        color: var(--ink2);
+      }
+      .switch {
+        display: flex;
+        background: var(--inset);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 3px;
+        margin: 12px 0 4px;
+      }
+      .switch div {
+        flex: 1;
+        text-align: center;
+        padding: 8px;
+        border-radius: 7px;
+        color: var(--ink2);
+        font-weight: 650;
+      }
+      .switch .on {
+        background: var(--panel);
+        color: var(--ink);
+        box-shadow: 0 0 0 1px #4f565c;
+      }
+      .fmt {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 0;
+        border-top: 1px solid var(--line);
+      }
+      .fmt:first-of-type {
+        border-top: 0;
+      }
+      .fmt .n {
+        flex: 1;
+        font-weight: 650;
+      }
+      .fmt .n small {
+        display: block;
+        font-weight: 400;
+        color: var(--ink2);
+        font-size: 12px;
+      }
+      .act {
+        width: 118px;
+        height: 40px;
+        border: 1px solid #4f565c;
+        border-radius: 10px;
+        display: grid;
+        place-items: center;
+        font-weight: 650;
+        font-size: 14px;
+      }
+      .meter {
+        width: 118px;
+        height: 40px;
+        border-radius: 10px;
+        border: 1px solid var(--line);
+        padding: 6px 8px;
+        display: grid;
+        gap: 3px;
+        font-size: 12px;
+        font-weight: 800;
+      }
+      .segs {
+        height: 10px;
+        background: linear-gradient(90deg, var(--amber) var(--p), var(--off) var(--p));
+        -webkit-mask: repeating-linear-gradient(90deg, #000 0 5px, transparent 5px 7px);
+      }
+      .done {
+        width: 118px;
+        text-align: center;
+        color: var(--ok);
+        font-weight: 700;
+        font-size: 14px;
+      }
+      .done small {
+        display: block;
+        color: var(--ink2);
+        font-weight: 400;
+        text-decoration: underline;
+        font-size: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <header class="mock-head">
+      <h1>Option B: Tape deck, simplified (name: YTSavvy)</h1>
+      <p>
+        The current design, cut down to the simple flow: no history, no downloads panel. The progress lives inside the
+        clicked button as the amber segmented meter. Graphite here; the light aluminium theme switches automatically.
+        Most distinctive of the four. <a href="index.html">Back to all options</a>
+      </p>
+    </header>
+    <div class="frames" id="frames"></div>
+    <script>
+      const thumb = 'https://i.ytimg.com/vi/aqz-KE-bpKQ/hqdefault.jpg';
+      const rows = [
+        ['1080p60 MP4', 'Plays everywhere', '255 MB'],
+        ['720p60 MP4', 'Plays everywhere', '153 MB'],
+        ['480p MP4', 'Plays everywhere', '37 MB'],
+      ];
+      function action(i, step) {
+        if (i !== 0 || step < 3) return '<div class="act">Download</div>';
+        if (step === 3)
+          return '<div class="meter" style="--p:42%"><span>42%  Cancel</span><div class="segs"></div></div>';
+        return '<div class="done">✓ Downloaded<small>Download again</small></div>';
+      }
+      function screen(step) {
+        const top = `<div class="brand">YTSavvy<span class="lamp ${step === 3 ? 'on' : ''}"></span></div>`;
+        if (step === 1)
+          return `${top}<h2>YouTube video and MP3 downloader</h2><p class="sub">Paste a link. Get MP4 up to 4K or MP3.</p>
+          <div class="row"><div class="field">Paste a YouTube link</div><div class="btn">Fetch</div></div>
+          <p class="sub" style="margin-top:12px">Works with videos, Shorts and music.</p>`;
+        return `${top}<div class="row" style="margin-top:16px"><div class="field val">youtu.be/aqz-KE-bpKQ</div><div class="btn">Fetch</div></div>
+          <div class="card"><img src="${thumb}" alt=""><b>Big Buck Bunny 60fps 4K - Official Blender Foundation Short Film</b>
+          <div class="meta">Blender  10:35</div>
+          <div class="switch"><div class="on">Video MP4</div><div>Audio MP3</div></div>
+          ${rows.map((r, i) => `<div class="fmt"><div class="n">${r[0]}<small>${r[1]}, about ${r[2]}</small></div>${action(i, step)}</div>`).join('')}
+          </div>`;
+      }
+      const caps = ['1. Paste a link', '2. Pick a format', '3. Preparing', '4. Done (saved automatically)'];
+      document.getElementById('frames').innerHTML = caps
+        .map(
+          (c, i) =>
+            `<figure><figcaption>${c}</figcaption><div class="phone"><div class="app">${screen(i + 1)}</div></div></figure>`
+        )
+        .join('');
+    </script>
+  </body>
+</html>

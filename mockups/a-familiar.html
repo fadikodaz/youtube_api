@@ -1,0 +1,429 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Option A: Familiar converter (YTDownly)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="mockups.css" />
+    <style>
+      .app {
+        --brand: #2f5bea;
+        --brand-dark: #1e40c0;
+        --ink: #0f172a;
+        --muted: #5b6475;
+        --line: #e2e6ee;
+        --bg: #f3f5f9;
+        --ok: #15803d;
+        font-family: Manrope, system-ui, sans-serif;
+        background: var(--bg);
+        color: var(--ink);
+      }
+      .bar {
+        background: #fff;
+        border-bottom: 1px solid var(--line);
+        padding: 14px 18px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 800;
+        font-size: 19px;
+      }
+      .logo {
+        width: 28px;
+        height: 28px;
+        border-radius: 8px;
+        background: var(--brand);
+        display: grid;
+        place-items: center;
+      }
+      .logo::after {
+        content: '';
+        border: 6px solid transparent;
+        border-top: 8px solid #fff;
+        margin-top: 8px;
+      }
+      .bar small {
+        margin-left: auto;
+        font-weight: 600;
+        font-size: 13px;
+        color: var(--muted);
+      }
+      .hero {
+        padding: 26px 18px 18px;
+        text-align: center;
+      }
+      .hero h2 {
+        margin: 0 0 6px;
+        font-size: 24px;
+        line-height: 1.2;
+        font-weight: 800;
+      }
+      .hero p {
+        margin: 0 0 16px;
+        color: var(--muted);
+        font-size: 14px;
+      }
+      .search {
+        display: flex;
+        background: #fff;
+        border: 2px solid var(--brand);
+        border-radius: 12px;
+        overflow: hidden;
+      }
+      .search input {
+        flex: 1;
+        min-width: 0;
+        border: 0;
+        padding: 0 12px;
+        font: inherit;
+        font-size: 15px;
+        height: 50px;
+        outline: none;
+      }
+      .search button {
+        border: 0;
+        background: var(--brand);
+        color: #fff;
+        font: inherit;
+        font-weight: 800;
+        padding: 0 20px;
+      }
+      .chips {
+        display: flex;
+        gap: 8px;
+        justify-content: center;
+        margin-top: 14px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .chips span {
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: 99px;
+        padding: 4px 10px;
+      }
+      .steps {
+        margin: 8px 18px;
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 16px;
+        font-size: 14px;
+      }
+      .steps h3 {
+        margin: 0 0 8px;
+        font-size: 15px;
+      }
+      .steps ol {
+        margin: 0;
+        padding-left: 20px;
+        color: var(--muted);
+      }
+      .card {
+        margin: 0 18px;
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        overflow: hidden;
+      }
+      .video {
+        display: flex;
+        gap: 12px;
+        padding: 12px;
+        border-bottom: 1px solid var(--line);
+      }
+      .video img {
+        width: 128px;
+        aspect-ratio: 16/9;
+        object-fit: cover;
+        border-radius: 8px;
+      }
+      .video b {
+        display: block;
+        font-size: 14px;
+        line-height: 1.3;
+      }
+      .video span {
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .tabs {
+        display: flex;
+        border-bottom: 1px solid var(--line);
+      }
+      .tabs div {
+        flex: 1;
+        text-align: center;
+        padding: 11px;
+        font-weight: 700;
+        color: var(--muted);
+      }
+      .tabs .on {
+        color: var(--brand);
+        box-shadow: inset 0 -3px var(--brand);
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+      }
+      td {
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--line);
+      }
+      tr:last-child td {
+        border-bottom: 0;
+      }
+      td.q {
+        font-weight: 700;
+      }
+      td.s {
+        color: var(--muted);
+      }
+      td.b {
+        text-align: right;
+        width: 128px;
+      }
+      .dl {
+        display: inline-block;
+        width: 116px;
+        text-align: center;
+        background: var(--brand);
+        color: #fff;
+        font-weight: 700;
+        border-radius: 8px;
+        padding: 8px 0;
+      }
+      .prog {
+        width: 116px;
+        height: 36px;
+        border-radius: 8px;
+        background: #e6ecff;
+        position: relative;
+        overflow: hidden;
+        display: inline-block;
+        vertical-align: middle;
+      }
+      .prog i {
+        position: absolute;
+        inset: 0 auto 0 0;
+        background: #c7d4ff;
+      }
+      .prog span {
+        position: relative;
+        display: block;
+        text-align: center;
+        line-height: 36px;
+        font-weight: 700;
+        color: var(--brand-dark);
+        font-size: 13px;
+      }
+      .done {
+        color: var(--ok);
+        font-weight: 800;
+      }
+      .again {
+        display: block;
+        font-size: 12px;
+        color: var(--muted);
+        text-decoration: underline;
+      }
+      .tag {
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--brand);
+        background: #e6ecff;
+        border-radius: 4px;
+        padding: 1px 5px;
+        margin-left: 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <header class="mock-head">
+      <h1>Option A: Familiar converter (name: YTDownly)</h1>
+      <p>
+        Looks like the tools people already know: a white page, a centred headline with the search keywords, one big
+        search box, and a results table with MP4/MP3 tabs. Cobalt blue so it doesn't copy YouTube red. Safest for
+        conversions and SEO; less memorable. <a href="index.html">Back to all options</a>
+      </p>
+    </header>
+    <div class="frames">
+      <figure>
+        <figcaption>1. Paste a link</figcaption>
+        <div class="phone">
+          <div class="app">
+            <div class="bar"><span class="logo"></span>YTDownly<small>EN</small></div>
+            <div class="hero">
+              <h2>YouTube Video &amp; MP3 Downloader</h2>
+              <p>Free, fast, no sign-up. MP4 up to 4K and MP3 up to 320 kbps.</p>
+              <div class="search"><input placeholder="Paste YouTube link here" /><button>Download</button></div>
+              <div class="chips"><span>MP4</span><span>MP3</span><span>Shorts</span><span>4K</span></div>
+            </div>
+            <div class="steps">
+              <h3>How to download</h3>
+              <ol>
+                <li>Copy the video link from YouTube.</li>
+                <li>Paste it above and press Download.</li>
+                <li>Pick MP4 or MP3 and the quality.</li>
+              </ol>
+            </div>
+          </div>
+        </div>
+      </figure>
+      <figure>
+        <figcaption>2. Pick a format</figcaption>
+        <div class="phone">
+          <div class="app">
+            <div class="bar"><span class="logo"></span>YTDownly</div>
+            <div class="hero" style="padding-bottom: 14px">
+              <div class="search"><input value="youtu.be/aqz-KE-bpKQ" /><button>Download</button></div>
+            </div>
+            <div class="card">
+              <div class="video">
+                <img src="https://i.ytimg.com/vi/aqz-KE-bpKQ/mqdefault.jpg" alt="" />
+                <div>
+                  <b>Big Buck Bunny 60fps 4K - Official Blender Foundation Short Film</b><span>Blender, 10:35</span>
+                </div>
+              </div>
+              <div class="tabs">
+                <div class="on">Video (MP4)</div>
+                <div>Audio (MP3)</div>
+              </div>
+              <table>
+                <tr>
+                  <td class="q">2160p <span class="tag">4K</span></td>
+                  <td class="s">1.3 GB</td>
+                  <td class="b"><span class="dl">Download</span></td>
+                </tr>
+                <tr>
+                  <td class="q">1080p <span class="tag">HD</span></td>
+                  <td class="s">255 MB</td>
+                  <td class="b"><span class="dl">Download</span></td>
+                </tr>
+                <tr>
+                  <td class="q">720p</td>
+                  <td class="s">153 MB</td>
+                  <td class="b"><span class="dl">Download</span></td>
+                </tr>
+                <tr>
+                  <td class="q">480p</td>
+                  <td class="s">37 MB</td>
+                  <td class="b"><span class="dl">Download</span></td>
+                </tr>
+                <tr>
+                  <td class="q">360p</td>
+                  <td class="s">27 MB</td>
+                  <td class="b"><span class="dl">Download</span></td>
+                </tr>
+              </table>
+            </div>
+          </div>
+        </div>
+      </figure>
+      <figure>
+        <figcaption>3. Preparing (button becomes the progress bar)</figcaption>
+        <div class="phone">
+          <div class="app">
+            <div class="bar"><span class="logo"></span>YTDownly</div>
+            <div class="hero" style="padding-bottom: 14px">
+              <div class="search"><input value="youtu.be/aqz-KE-bpKQ" /><button>Download</button></div>
+            </div>
+            <div class="card">
+              <div class="video">
+                <img src="https://i.ytimg.com/vi/aqz-KE-bpKQ/mqdefault.jpg" alt="" />
+                <div>
+                  <b>Big Buck Bunny 60fps 4K - Official Blender Foundation Short Film</b><span>Blender, 10:35</span>
+                </div>
+              </div>
+              <div class="tabs">
+                <div class="on">Video (MP4)</div>
+                <div>Audio (MP3)</div>
+              </div>
+              <table>
+                <tr>
+                  <td class="q">2160p <span class="tag">4K</span></td>
+                  <td class="s">1.3 GB</td>
+                  <td class="b"><span class="dl">Download</span></td>
+                </tr>
+                <tr>
+                  <td class="q">1080p <span class="tag">HD</span></td>
+                  <td class="s">255 MB</td>
+                  <td class="b">
+                    <span class="prog"><i style="width: 42%"></i><span>42% · Cancel</span></span>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="q">720p</td>
+                  <td class="s">153 MB</td>
+                  <td class="b"><span class="dl">Download</span></td>
+                </tr>
+                <tr>
+                  <td class="q">480p</td>
+                  <td class="s">37 MB</td>
+                  <td class="b"><span class="dl">Download</span></td>
+                </tr>
+                <tr>
+                  <td class="q">360p</td>
+                  <td class="s">27 MB</td>
+                  <td class="b"><span class="dl">Download</span></td>
+                </tr>
+              </table>
+            </div>
+          </div>
+        </div>
+      </figure>
+      <figure>
+        <figcaption>4. Done (file saved automatically)</figcaption>
+        <div class="phone">
+          <div class="app">
+            <div class="bar"><span class="logo"></span>YTDownly</div>
+            <div class="hero" style="padding-bottom: 14px">
+              <div class="search"><input value="youtu.be/aqz-KE-bpKQ" /><button>Download</button></div>
+            </div>
+            <div class="card">
+              <div class="video">
+                <img src="https://i.ytimg.com/vi/aqz-KE-bpKQ/mqdefault.jpg" alt="" />
+                <div>
+                  <b>Big Buck Bunny 60fps 4K - Official Blender Foundation Short Film</b><span>Blender, 10:35</span>
+                </div>
+              </div>
+              <div class="tabs">
+                <div class="on">Video (MP4)</div>
+                <div>Audio (MP3)</div>
+              </div>
+              <table>
+                <tr>
+                  <td class="q">2160p <span class="tag">4K</span></td>
+                  <td class="s">1.3 GB</td>
+                  <td class="b"><span class="dl">Download</span></td>
+                </tr>
+                <tr>
+                  <td class="q">1080p <span class="tag">HD</span></td>
+                  <td class="s">255 MB</td>
+                  <td class="b"><span class="done">✓ Downloaded</span><span class="again">Download again</span></td>
+                </tr>
+                <tr>
+                  <td class="q">720p</td>
+                  <td class="s">153 MB</td>
+                  <td class="b"><span class="dl">Download</span></td>
+                </tr>
+                <tr>
+                  <td class="q">480p</td>
+                  <td class="s">37 MB</td>
+                  <td class="b"><span class="dl">Download</span></td>
+                </tr>
+                <tr>
+                  <td class="q">360p</td>
+                  <td class="s">27 MB</td>
+                  <td class="b"><span class="dl">Download</span></td>
+                </tr>
+              </table>
+            </div>
+          </div>
+        </div>
+      </figure>
+    </div>
+  </body>
+</html>

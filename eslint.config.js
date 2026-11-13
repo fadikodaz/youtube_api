@@ -3,7 +3,7 @@ const js = require('@eslint/js');
 const globals = require('globals');
 
 module.exports = [
-  { ignores: ['node_modules/', 'bin/'] },
+  { ignores: ['node_modules/', 'bin/', '.opencode/'] },
   js.configs.recommended,
   {
     files: ['**/*.js'],
@@ -19,5 +19,17 @@ module.exports = [
       'prefer-const': 'error',
       'no-var': 'error',
     },
+  },
+  {
+    files: ['public/app.js'],
+    languageOptions: { sourceType: 'module', globals: { ...globals.browser } },
+  },
+  {
+    files: ['public/theme.js'],
+    languageOptions: { sourceType: 'script', globals: { ...globals.browser } },
+  },
+  {
+    files: ['public/sw.js'],
+    languageOptions: { sourceType: 'script', globals: { ...globals.serviceworker } },
   },
 ];
