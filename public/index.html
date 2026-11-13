@@ -831,6 +831,8 @@
     const frag = document.createDocumentFragment();
     for (const opt of opts) frag.appendChild(makeRow(opt, !!info.isLive));
     el.formatRows.appendChild(frag);
+    // paintRow() looks rows up in the DOM, so paint only after they're attached.
+    for (const row of el.formatRows.children) if (row.dataset.key && row._parts) paintRow(row.dataset.key);
   }
 
   el.tabAudio.addEventListener('click', () => {
