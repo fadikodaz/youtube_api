@@ -205,10 +205,25 @@
   .row-download:hover:not(:disabled) { background: #2a2e35; }
   .row-download:active:not(:disabled) { transform: translateY(1px); }
   .row-download:disabled { opacity: .45; cursor: wait; }
-  .row-download.started {
-    background: rgba(52,211,153,.12); border-color: rgba(52,211,153,.45);
-    color: #a7f3d0; opacity: 1;
+  .row-download.cancel { background: transparent; color: #ffb3c1; border-color: rgba(255,84,112,.45); }
+  .row-download.cancel:hover:not(:disabled) { background: rgba(255,84,112,.12); }
+  .row-download.ready {
+    background: rgba(52,211,153,.12); border-color: rgba(52,211,153,.45); color: #a7f3d0;
   }
+  .row-download.ready:hover:not(:disabled) { background: rgba(52,211,153,.2); }
+  .format-row.busy .format-size, .format-row.done .format-size { color: #d6d9de; }
+  .format-row.done .format-size { color: #a7f3d0; }
+  .format-row.off { opacity: .5; }
+  .row-progress {
+    position: absolute; left: 10px; right: 10px; bottom: 3px; height: 3px;
+    border-radius: 3px; background: #262a31; overflow: hidden;
+  }
+  .row-bar {
+    height: 100%; width: 0; border-radius: 3px;
+    background: linear-gradient(90deg, var(--accent), #ff7a93); transition: width .45s ease;
+  }
+  .row-progress.indeterminate .row-bar { width: 32%; animation: indet 1.15s ease-in-out infinite; }
+  @keyframes indet { from { transform: translateX(-110%); } to { transform: translateX(320%); } }
 
   .foot { margin-top: 16px; text-align: center; font-size: 10.5px; color: #6f747c; }
 
@@ -261,8 +276,12 @@
     .top { align-items: flex-start; flex-direction: column; }
     .source-card { grid-template-columns: 100px minmax(0, 1fr); gap: 12px; }
     .video-thumb { height: 64px; }
-    .format-row { grid-template-columns: 40px minmax(0, 1fr) auto; gap: 10px; padding: 10px 6px; }
+    .format-row { grid-template-columns: 40px minmax(0, 1fr) auto; gap: 4px 10px; padding: 10px 6px 12px; }
     .format-size { display: none; }
+    .format-row.busy .format-size, .format-row.done .format-size {
+      display: block; grid-column: 2 / -1; grid-row: 2; font-size: 10.5px;
+    }
+    .row-progress { left: 6px; right: 6px; }
     .format-badge { width: 40px; height: 40px; }
     .row-download { min-width: auto; padding: 0 12px; }
     .sk-media { width: 100px; height: 64px; }
@@ -274,6 +293,7 @@
   }
   @media (prefers-reduced-motion: reduce) {
     .sk-media, .sk-line, .toast { animation: none !important; }
+    .row-progress.indeterminate .row-bar { animation: none; width: 100%; opacity: .5; }
   }
 </style>
 </head>
@@ -342,7 +362,7 @@
         <div class="section-top">
           <div>
             <div class="label">Choose an output</div>
-            <div class="tiny" id="formatHint">Tap a format to download it instantly</div>
+            <div class="tiny" id="formatHint">Pick a format — it's prepared on the server, then saved to your device</div>
           </div>
           <div class="seg" role="tablist" aria-label="Download type">
             <button id="tabAudio" class="active" type="button" role="tab" aria-selected="true">Audio</button>
@@ -395,7 +415,7 @@
     lastFetched: '',
     kind: 'audio',
     fetchAbort: null,
-    dlBusy: false,
+    jobs: new Map(), // `${videoId}|${value}` -> { id, opt, view, phase, saved, timer, fails }
     fetchTimer: null,
     hintTimer: null,
     fetching: false,
@@ -523,6 +543,9 @@
   }
 
   function renderInfo(d) {
+    // A background refresh of the same video must not reset the tab or stop
+    // a playing preview.
+    const sameVideo = el.media.dataset.videoId === d.videoId && !el.preview.classList.contains('hidden');
     el.thumb.onerror = () => {
       el.thumb.onerror = null;
       el.thumb.src = `https://i.ytimg.com/vi/${d.videoId}/hqdefault.jpg`;
@@ -539,9 +562,10 @@
     el.chipDate.classList.toggle('hidden', !d.uploadDate);
     el.liveBadge.classList.toggle('hidden', !d.isLive);
     el.media.dataset.videoId = d.videoId;
-    resetMedia();
-
-    state.kind = 'audio';
+    if (!sameVideo) {
+      resetMedia();
+      state.kind = 'audio';
+    }
     populateFormats();
     show(el.preview);
     show(el.formatBox);
@@ -591,12 +615,6 @@
       el.fetchBtn.classList.remove('is-loaded');
       return;
     }
-    if (state.dlBusy) {
-      el.fetchBtn.disabled = true;
-      el.fetchBtn.textContent = 'Fetch';
-      el.fetchBtn.classList.remove('is-loaded');
-      return;
-    }
     const parsed = parseInput(el.url.value);
     const loaded = !!(parsed && state.info && state.lastFetched === parsed.url);
     el.fetchBtn.disabled = loaded;
@@ -611,8 +629,6 @@
       updateFetchState();
       return;
     }
-    if (silent && state.dlBusy) return;
-
     if (!silent && state.fetchAbort) {
       state.fetchAbort.abort();
       state.fetchAbort = null;
@@ -688,30 +704,58 @@
   }
 
   // -------------------------------------------------------------- formats ---
+  // YouTube audio tops out around 130-160 kbps, so higher MP3 bitrates only
+  // make bigger files. 320 is offered only when the source is that good.
   function audioOptions(info) {
     const est = info.estimatedSizes || {};
     const srcSize = Number(info.sourceSize) || 0;
     const srcExt = (info.sourceExt || 'm4a').toUpperCase();
-    return [
-      { value: 'mp3:320', badge: 'MP3', title: 'MP3 · 320 kbps', desc: 'Best audio quality, larger file', size: est[320] ? '~' + fmtBytes(est[320]) : '' },
-      { value: 'mp3:192', badge: 'MP3', title: 'MP3 · 192 kbps', desc: 'Balanced quality and size', size: est[192] ? '~' + fmtBytes(est[192]) : '' },
-      { value: 'mp3:128', badge: 'MP3', title: 'MP3 · 128 kbps', desc: 'Smallest file size', size: est[128] ? '~' + fmtBytes(est[128]) : '' },
-      { value: 'original', badge: srcExt, title: 'Original audio', desc: 'Untouched best audio track', size: srcSize ? '~' + fmtBytes(srcSize) : '' },
-    ];
+    const srcKbps = Number(info.sourceBitrate) || 0;
+    const sz = (n) => (n ? '~' + fmtBytes(n) : '');
+    const opts = [];
+    if ((Number(info.maxAudioBitrate) || 0) >= 250) {
+      opts.push({ value: 'mp3:320', badge: 'MP3', title: 'MP3 · 320 kbps', desc: 'Maximum quality', size: sz(est[320]), bytes: est[320] });
+    }
+    opts.push(
+      { value: 'mp3:192', badge: 'MP3', title: 'MP3 · 192 kbps', desc: 'Best quality · plays on every device', size: sz(est[192]), bytes: est[192] },
+      { value: 'mp3:128', badge: 'MP3', title: 'MP3 · 128 kbps', desc: 'Smaller file', size: sz(est[128]), bytes: est[128] },
+      {
+        value: 'original',
+        badge: srcExt,
+        title: `${srcExt}${srcKbps ? ` · ${srcKbps} kbps` : ''}`,
+        desc: 'Original YouTube audio · no re-encoding',
+        size: sz(srcSize),
+        bytes: srcSize,
+      }
+    );
+    return opts;
   }
 
   function videoOptions(info) {
     return (info.videoOptions || [])
       .slice()
-      .sort((a, b) => b.height - a.height || b.fps - a.fps)
+      .sort((a, b) => b.height - a.height)
       .map((o) => ({
-        value: `video:${o.height}:${o.fps}`,
+        value: `video:${o.height}`,
         badge: 'MP4',
         title: `${o.label} · MP4`,
-        desc: o.needsMerge ? 'Merged with best audio · can take a minute' : 'Video with audio',
+        desc: [o.codec, o.compat].filter(Boolean).join(' · ') || 'Video with audio',
         size: o.estimatedSize ? '~' + fmtBytes(o.estimatedSize) : '',
-        needsMerge: !!o.needsMerge,
+        bytes: o.estimatedSize || 0,
       }));
+  }
+
+  function jobBody(opt) {
+    const body = { url: state.url };
+    if (opt.value === 'original') body.format = 'audio';
+    else if (opt.value.startsWith('video:')) {
+      body.format = 'video';
+      body.height = Number(opt.value.split(':')[1]);
+    } else {
+      body.format = 'mp3';
+      body.quality = Number(opt.value.split(':')[1]) || 192;
+    }
+    return body;
   }
 
   function makeRow(opt, isLive) {
@@ -738,14 +782,29 @@
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'row-download';
-    btn.textContent = isLive ? 'Live' : 'Download';
-    if (isLive) btn.disabled = true;
-    btn.addEventListener('click', () => {
-      if (state.dlBusy) return;
-      startDownload(opt, { row, btn, size });
-    });
 
-    row.append(badge, info, size, btn);
+    const prog = document.createElement('div');
+    prog.className = 'row-progress hidden';
+    const bar = document.createElement('div');
+    bar.className = 'row-bar';
+    prog.appendChild(bar);
+
+    const key = jobKey(opt);
+    row.dataset.key = key;
+    row._parts = { btn, size, prog, bar, opt };
+
+    const limit = state.info?.limits?.maxFileBytes || 0;
+    const blocked = isLive ? 'Live' : state.info?.tooLong ? 'Too long' : limit && opt.bytes > limit ? 'Too large' : '';
+    if (blocked) {
+      btn.textContent = blocked;
+      btn.disabled = true;
+      row.classList.add('off');
+    } else {
+      btn.addEventListener('click', () => onRowClick(key, opt));
+    }
+
+    row.append(badge, info, size, btn, prog);
+    if (!blocked) paintRow(key);
     return row;
   }
 
@@ -760,9 +819,12 @@
     el.tabVideo.classList.toggle('active', state.kind === 'video');
     el.tabAudio.setAttribute('aria-selected', String(state.kind === 'audio'));
     el.tabVideo.setAttribute('aria-selected', String(state.kind === 'video'));
+    const hours = Math.round(((info.limits?.maxDurationSec || 0) / 3600) * 10) / 10;
     el.formatHint.textContent = info.isLive
       ? 'Live streams cannot be downloaded while live.'
-      : 'Tap a format to download it instantly';
+      : info.tooLong
+        ? `This video is longer than ${hours} hours — too long for this server.`
+        : "Pick a format — it's prepared on the server, then saved to your device";
 
     el.formatRows.textContent = '';
     const opts = state.kind === 'video' ? videoOptions(info) : audioOptions(info);
@@ -772,104 +834,221 @@
   }
 
   el.tabAudio.addEventListener('click', () => {
-    if (state.dlBusy || state.kind === 'audio') return;
+    if (state.kind === 'audio') return;
     state.kind = 'audio';
     populateFormats();
   });
   el.tabVideo.addEventListener('click', () => {
-    if (state.dlBusy || state.kind === 'video') return;
+    if (state.kind === 'video') return;
     state.kind = 'video';
     populateFormats();
   });
 
   // ------------------------------------------------------------ download ----
-  async function startDownload(opt, { row, btn, size }) {
-    if (!state.info || !state.url || state.dlBusy) return;
-    if (state.info.isLive) {
-      toast('Live streams can be downloaded after they end.', 'info');
-      return;
+  // Each click creates a server job. The row shows progress while the server
+  // downloads/converts; when ready the browser saves the finished file (real
+  // size, full speed, resumable). Several rows can run at the same time and
+  // keep going if you switch tabs or load another video.
+  const ACTIVE = new Set(['creating', 'queued', 'downloading', 'processing']);
+  const PROCESSING_LABEL = {
+    mp3: 'Converting to MP3…',
+    video: 'Merging video and audio…',
+    audio: 'Adding tags…',
+  };
+
+  function jobKey(opt) {
+    return `${state.info?.videoId || ''}|${opt.value}`;
+  }
+
+  function findRow(key) {
+    for (const r of el.formatRows.children) if (r.dataset.key === key) return r;
+    return null;
+  }
+
+  function fmtSpeed(bps) {
+    return bps > 0 ? `${fmtBytes(bps)}/s` : '';
+  }
+
+  function fmtEta(s) {
+    if (s == null || s < 1) return '';
+    if (s < 60) return `${Math.round(s)}s left`;
+    return `${Math.floor(s / 60)}m ${String(Math.round(s % 60)).padStart(2, '0')}s left`;
+  }
+
+  function paintRow(key) {
+    const row = findRow(key);
+    if (!row || !row._parts) return;
+    const { btn, size, prog, bar, opt } = row._parts;
+    const job = state.jobs.get(key);
+    const phase = job ? job.phase : 'idle';
+    const v = job?.view || {};
+
+    row.classList.toggle('busy', ACTIVE.has(phase));
+    row.classList.toggle('done', phase === 'ready');
+    row.classList.toggle('active', ACTIVE.has(phase));
+    btn.classList.toggle('cancel', ACTIVE.has(phase) && phase !== 'creating');
+    btn.classList.toggle('ready', phase === 'ready');
+    btn.disabled = phase === 'creating';
+    prog.classList.toggle('hidden', !ACTIVE.has(phase));
+    prog.classList.toggle('indeterminate', phase !== 'downloading' || v.percent == null);
+
+    switch (phase) {
+      case 'creating':
+        btn.textContent = 'Starting…';
+        size.textContent = 'Starting…';
+        break;
+      case 'queued':
+        btn.textContent = 'Cancel';
+        size.textContent = v.position > 0 ? `Waiting in line · #${v.position}` : 'Waiting in line…';
+        break;
+      case 'downloading': {
+        btn.textContent = 'Cancel';
+        const pct = v.percent ?? 0;
+        bar.style.width = pct + '%';
+        const bits = [`${pct}%`, fmtSpeed(v.speed), fmtEta(v.eta)].filter(Boolean);
+        size.textContent = pct === 0 && !v.speed ? 'Preparing…' : bits.join(' · ');
+        break;
+      }
+      case 'processing':
+        btn.textContent = 'Cancel';
+        size.textContent = PROCESSING_LABEL[v.kind] || 'Finishing…';
+        break;
+      case 'ready':
+        btn.textContent = 'Save again';
+        size.textContent = `Ready · ${fmtBytes(v.size)}`;
+        break;
+      default:
+        btn.textContent = 'Download';
+        size.textContent = opt.size || '';
+        bar.style.width = '0%';
     }
+  }
+
+  async function readJson(r) {
+    const ct = r.headers.get('content-type') || '';
+    return ct.includes('application/json') ? r.json().catch(() => ({})) : {};
+  }
+
+  function onRowClick(key, opt) {
+    const job = state.jobs.get(key);
+    if (!job) return startJob(key, opt);
+    if (job.phase === 'ready') return saveFile(job, true);
+    if (ACTIVE.has(job.phase) && job.phase !== 'creating') return cancelJob(key);
+  }
+
+  async function startJob(key, opt) {
+    if (!state.info || !state.url) return;
     clearError();
-
-    const params = new URLSearchParams({ url: state.url });
-    if (opt.value === 'original') {
-      params.set('format', 'original');
-    } else if (opt.value.startsWith('video:')) {
-      const [, height, fps] = opt.value.split(':');
-      params.set('format', 'video');
-      params.set('height', height);
-      if (fps && fps !== '0') params.set('fps', fps);
-    } else {
-      const [, quality] = opt.value.split(':');
-      params.set('format', 'mp3');
-      params.set('quality', quality || '192');
-    }
-
-    state.dlBusy = true;
-    row.classList.add('active');
-    btn.textContent = 'Starting…';
-    document.querySelectorAll('.row-download').forEach((b) => { b.disabled = true; });
-    el.tabAudio.disabled = true;
-    el.tabVideo.disabled = true;
-    updateFetchState();
-
-    let started = false;
+    const job = { key, opt, phase: 'creating', view: null, id: null, saved: false, timer: null, fails: 0 };
+    state.jobs.set(key, job);
+    paintRow(key);
 
     try {
-      const check = await fetch('/api/download/check?' + params.toString(), { cache: 'no-store' });
-      const ct = check.headers.get('content-type') || '';
-      const data = ct.includes('application/json') ? await check.json().catch(() => ({})) : {};
-      if (!check.ok || !data.ok) {
-        const err = new Error(data.error || `Download failed (${check.status})`);
+      const r = await fetch('/api/jobs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(jobBody(opt)),
+      });
+      const data = await readJson(r);
+      if (!r.ok) {
+        const err = new Error(data.error || `Could not start (${r.status})`);
         err.hint = data.hint || '';
         throw err;
       }
-
-      const a = document.createElement('a');
-      a.href = '/api/download?' + params.toString();
-      a.download = data.filename || 'download';
-      a.style.display = 'none';
-      document.body.appendChild(a);
-      a.click();
-      setTimeout(() => a.remove(), 1000);
-
-      started = true;
-      btn.textContent = 'Started';
-      btn.classList.add('started');
-      size.textContent = data.estimatedSize ? '~' + fmtBytes(data.estimatedSize) : '';
-
-      if (data.needsMerge) {
-        toast('Preparing your video — it will fill in automatically.', 'success', 'Download started');
-      } else {
-        toast('Check your browser downloads.', 'success', 'Download started');
-      }
+      if (state.jobs.get(key) !== job) return; // cancelled meanwhile
+      job.id = data.id;
+      applyJobView(job, data);
     } catch (e) {
-      toast(e.message || 'Could not start the download.', 'error');
-      if (e.hint) setError(e.message, e.hint);
-    } finally {
-      state.dlBusy = false;
-      row.classList.remove('active');
-      el.tabAudio.disabled = false;
-      el.tabVideo.disabled = !(state.info && state.info.videoOptions && state.info.videoOptions.length);
-      document.querySelectorAll('.row-download').forEach((b) => {
-        if (b !== btn) b.disabled = false;
-      });
-      updateFetchState();
-
-      if (started) {
-        btn.disabled = true;
-        setTimeout(() => {
-          btn.textContent = 'Download';
-          btn.classList.remove('started');
-          btn.disabled = false;
-        }, 2200);
-      } else {
-        btn.textContent = 'Download';
-        btn.classList.remove('started');
-        btn.disabled = false;
-      }
+      if (state.jobs.get(key) === job) state.jobs.delete(key);
+      paintRow(key);
+      toast(e.hint ? `${e.message} ${e.hint}` : e.message || 'Could not start the download.', 'error');
     }
   }
+
+  function applyJobView(job, view) {
+    job.view = view;
+    job.phase = view.status;
+    paintRow(job.key);
+
+    if (view.status === 'ready') {
+      if (!job.saved) saveFile(job, false);
+      return;
+    }
+    if (view.status === 'error' || view.status === 'cancelled') {
+      state.jobs.delete(job.key);
+      paintRow(job.key);
+      const e = view.error || {};
+      if (view.status === 'error') {
+        toast(e.hint ? `${e.message} ${e.hint}` : e.message || 'Download failed.', 'error', job.opt.title);
+      }
+      return;
+    }
+    const delay = view.status === 'queued' ? 1500 : 800;
+    clearTimeout(job.timer);
+    job.timer = setTimeout(() => pollJob(job), delay);
+  }
+
+  async function pollJob(job) {
+    if (state.jobs.get(job.key) !== job) return;
+    try {
+      const r = await fetch(`/api/jobs/${job.id}`, { cache: 'no-store' });
+      const data = await readJson(r);
+      if (r.status === 404) {
+        state.jobs.delete(job.key);
+        paintRow(job.key);
+        toast(data.error || 'This download expired. Please start it again.', 'error');
+        return;
+      }
+      if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
+      job.fails = 0;
+      if (state.jobs.get(job.key) === job) applyJobView(job, data);
+    } catch {
+      // Brief network hiccup: keep trying with backoff, give up after ~1 min.
+      job.fails += 1;
+      if (job.fails > 12) {
+        state.jobs.delete(job.key);
+        paintRow(job.key);
+        toast('Lost connection to the server.', 'error');
+        return;
+      }
+      job.timer = setTimeout(() => pollJob(job), Math.min(8000, 800 * 2 ** Math.min(job.fails, 4)));
+    }
+  }
+
+  function saveFile(job, again) {
+    const a = document.createElement('a');
+    a.href = `/api/jobs/${job.id}/file`;
+    a.download = job.view?.filename || '';
+    a.rel = 'noopener';
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => a.remove(), 1000);
+    if (!again) {
+      job.saved = true;
+      toast(`${job.view?.filename || 'File'} · ${fmtBytes(job.view?.size)}`, 'success', 'Saved to your downloads');
+    }
+  }
+
+  function cancelJob(key) {
+    const job = state.jobs.get(key);
+    if (!job) return;
+    clearTimeout(job.timer);
+    state.jobs.delete(key);
+    paintRow(key);
+    if (job.id) fetch(`/api/jobs/${job.id}`, { method: 'DELETE', keepalive: true }).catch(() => {});
+    toast('Download cancelled.', 'info');
+  }
+
+  window.addEventListener('beforeunload', (e) => {
+    for (const j of state.jobs.values()) {
+      if (ACTIVE.has(j.phase)) {
+        e.preventDefault();
+        e.returnValue = '';
+        return;
+      }
+    }
+  });
 
   // -------------------------------------------------------------- history ---
   const HKEY = 'ytmp3.history.v1';
@@ -903,7 +1082,6 @@
       btn.type = 'button';
       btn.className = 'queue-item';
       btn.addEventListener('click', () => {
-        if (state.dlBusy) return;
         el.url.value = item.url;
         el.clearBtn.classList.remove('hidden');
         clearError();
@@ -939,7 +1117,6 @@
     clearError();
     updateFetchState();
     clearTimeout(state.fetchTimer);
-    if (state.dlBusy) return;
     const parsed = parseInput(el.url.value);
     if (!parsed) return;
     if (state.info && state.lastFetched === parsed.url) return;
@@ -961,7 +1138,7 @@
         el.url.value = text.trim();
         el.url.dispatchEvent(new Event('input'));
         clearTimeout(state.fetchTimer);
-        if (!state.dlBusy) fetchInfo(el.url.value);
+        fetchInfo(el.url.value);
       }
     } catch {
       el.url.focus();
@@ -970,7 +1147,6 @@
   });
 
   el.clearBtn.addEventListener('click', () => {
-    if (state.dlBusy) return;
     el.url.value = '';
     el.clearBtn.classList.add('hidden');
     state.info = null;
@@ -1000,7 +1176,7 @@
       el.url.value = text.trim();
       el.url.dispatchEvent(new Event('input'));
       clearTimeout(state.fetchTimer);
-      if (!state.dlBusy) fetchInfo(el.url.value);
+      fetchInfo(el.url.value);
     }
   });
 
