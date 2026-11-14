@@ -430,12 +430,91 @@ svg {
   font-weight: 800;
 }
 
-/* Once a video is loaded the hero shrinks to just the link field. */
+/* FAQ: native disclosure widgets, no script needed. */
+.faq {
+  border-radius: var(--r-lg);
+  padding: 18px 20px 8px;
+}
+.faq h2,
+.more h2 {
+  font-size: 1.15rem;
+  font-weight: 800;
+  margin-bottom: 6px;
+}
+.faq details {
+  border-top: 2px solid var(--soft);
+}
+.faq details:first-of-type {
+  border-top: 0;
+}
+.faq summary {
+  cursor: pointer;
+  padding: 12px 0;
+  font-weight: 700;
+  list-style: none;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+.faq summary::-webkit-details-marker {
+  display: none;
+}
+.faq summary::after {
+  content: '+';
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border: 2px solid var(--outline);
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  line-height: 1;
+}
+.faq details[open] summary::after {
+  content: '–';
+  background: var(--pop);
+  color: var(--on-color);
+}
+.faq details p {
+  padding: 0 0 14px;
+  color: var(--muted);
+  max-width: 70ch;
+}
+
+/* Links to the other platform pages. */
+.more ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.more a {
+  display: inline-block;
+  padding: 8px 14px;
+  border: var(--line) solid var(--outline);
+  border-radius: 99px;
+  background: var(--card);
+  color: var(--ink);
+  font-weight: 800;
+  text-decoration: none;
+  box-shadow: 3px 3px 0 var(--shadow);
+}
+.more a:hover {
+  background: var(--soft);
+}
+.more a[aria-current='page'] {
+  background: var(--pop);
+  color: var(--on-color);
+}
+
+/* Once a video is loaded the hero shrinks to just the link field, and the
+   reading material moves out of the way. */
 .has-video .hero h1,
 .has-video .lead,
 .has-video .paste-zone,
 .has-video .chips,
-.has-video .howto {
+.has-video .howto,
+.has-video .faq {
   display: none;
 }
 .has-video .hero {
@@ -463,6 +542,22 @@ svg {
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+/* No thumbnail available: striped panel with the site name. */
+.screen.empty {
+  background: repeating-linear-gradient(45deg, var(--pop) 0 14px, var(--pop-soft) 14px 28px);
+  display: grid;
+  place-items: center;
+}
+.screen.empty::after {
+  content: attr(data-site);
+  padding: 6px 16px;
+  border: var(--line) solid #161616;
+  border-radius: 99px;
+  background: #fffdf5;
+  color: #161616;
+  font-weight: 800;
+  font-size: 1.25rem;
 }
 .live {
   position: absolute;
@@ -496,6 +591,116 @@ svg {
 }
 .meta span:empty {
   display: none;
+}
+.meta #site {
+  font-weight: 800;
+  color: var(--ink);
+}
+.pill {
+  margin-top: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 2px solid var(--outline);
+  border-radius: 99px;
+  background: var(--card);
+  color: var(--ink);
+  font-weight: 800;
+  font-size: 0.875rem;
+  text-decoration: none;
+}
+.pill:hover {
+  background: var(--soft);
+}
+.pill:disabled {
+  opacity: 0.7;
+  cursor: progress;
+}
+.pill svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linejoin: round;
+}
+.howto-more {
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 0.9375rem;
+}
+
+/* "Cut a part": a link that opens two time fields. */
+.cut-toggle {
+  margin-top: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 2px;
+  border: 0;
+  background: none;
+  font-weight: 800;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.cut-toggle svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+.cut-toggle[aria-expanded='true'] {
+  color: var(--pop);
+}
+.cut {
+  margin-top: 6px;
+  padding: 12px;
+  border: var(--line) dashed var(--outline);
+  border-radius: var(--r-md);
+  background: var(--soft);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 10px 12px;
+}
+.cut label {
+  display: grid;
+  gap: 2px;
+  font-weight: 800;
+  font-size: 0.875rem;
+}
+.cut input {
+  width: 96px;
+  height: 44px;
+  padding: 0 10px;
+  border: var(--line) solid var(--outline);
+  border-radius: var(--r-sm);
+  background: var(--field);
+  font-size: 1rem;
+  font-variant-numeric: tabular-nums;
+}
+.cut input[aria-invalid='true'] {
+  border-color: var(--danger);
+}
+.cut-msg {
+  flex-basis: 100%;
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+.cut-msg.bad {
+  color: var(--danger);
+}
+.link-btn {
+  height: 44px;
+  border: 0;
+  background: none;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  color: var(--muted);
 }
 
 .skeleton {

@@ -22,6 +22,8 @@ const ffmpegPath = require('ffmpeg-static');
 const ytdlp = require('./lib/ytdlp');
 const { TTLMap } = require('./lib/cache');
 const { JobManager } = require('./lib/jobs');
+const { fetchImage } = require('./lib/safefetch');
+const { buildPages } = require('./lib/pages');
 
 const env = (name, def) => {
   const n = Number(process.env[name]);
@@ -36,6 +38,7 @@ const infoCache = new TTLMap(INFO_TTL, env('INFO_CACHE_MAX', 150));
 setInterval(() => {
   infoCache.prune();
   failCache.prune();
+  thumbCache.prune();
 }, 60 * 1000).unref();
 const inflightInfo = new Map();
 
@@ -122,7 +125,7 @@ app.use(express.json({ limit: '16kb' }));
 // Access log (skips static files and progress polling). LOG_REQUESTS=0 to disable.
 if (process.env.LOG_REQUESTS !== '0') {
   app.use((req, res, next) => {
-    if (!req.path.startsWith('/api/') || (req.method === 'GET' && /^\/api\/jobs\/[\w-]+$/.test(req.path))) {
+    if (!req.path.startsWith('/api/') || (req.method === 'GET' && /^\/api\/jobs\/[\w-]+(\/events)?$/.test(req.path))) {
       return next();
     }
     const t = Date.now();
@@ -141,7 +144,8 @@ const CSP = [
   "script-src 'self'",
   "style-src 'self'",
   "font-src 'self'",
-  "img-src 'self' data: https://i.ytimg.com https://*.ytimg.com https://*.ggpht.com https://*.googleusercontent.com",
+  // Thumbnails come from each site's own image CDN (YouTube, TikTok, Facebook...).
+  "img-src 'self' data: https:",
   "frame-src 'none'",
   "connect-src 'self'",
   "manifest-src 'self'",
@@ -160,12 +164,50 @@ app.use((req, res, next) => {
   res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
   next();
 });
+// ---------------------------------------------------------------- pages -----
+// Downloader pages (YouTube home + one per platform), rendered once at start.
+const site = buildPages();
+
+// Absolute site address for canonical links and the sitemap. Set PUBLIC_URL
+// in production (e.g. https://ytpocket.com); otherwise it is derived from the
+// request, accepting only a plain host name so a forged Host header can't
+// inject anything into the page.
+const PUBLIC_URL = (process.env.PUBLIC_URL || '').replace(/\/+$/, '');
+function originOf(req) {
+  if (PUBLIC_URL) return PUBLIC_URL;
+  const host = String(req.get('host') || '');
+  return /^[a-z0-9.-]+(:\d+)?$/i.test(host) ? `${req.protocol}://${host}` : '';
+}
+
+function sendPage(res, html, req, status = 200) {
+  res.status(status);
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.send(html.replaceAll('{{origin}}', originOf(req)));
+}
+
+for (const [p, html] of site.pages) app.get(p, (req, res) => sendPage(res, html, req));
+
+app.get('/robots.txt', (req, res) => {
+  res.type('text/plain').send(`User-agent: *\nDisallow: /api/\nSitemap: ${originOf(req)}/sitemap.xml\n`);
+});
+
+app.get('/sitemap.xml', (req, res) => {
+  const origin = originOf(req);
+  const urls = site.list.map((p) => `  <url><loc>${origin}${p.path}</loc></url>`).join('\n');
+  res
+    .type('application/xml')
+    .send(
+      `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`
+    );
+});
+
 // Static UI. Fonts and icons rarely change: cache for a week. Everything else
-// (HTML, JS, CSS, manifest, service worker) is revalidated on each load, so
-// an update reaches users immediately.
+// (JS, CSS, manifest, service worker) is revalidated on each load, so an
+// update reaches users immediately. Pages are served by the routes above.
 app.use(
   express.static(path.join(__dirname, 'public'), {
-    extensions: ['html'],
+    index: false,
     setHeaders(res, file) {
       if (/\.(woff2|png|svg)$/.test(file)) res.setHeader('Cache-Control', 'public, max-age=604800');
       else res.setHeader('Cache-Control', 'no-cache');
@@ -235,6 +277,8 @@ function statusForCode(code) {
     case 'BUSY':
       return 503;
     case 'PRIVATE':
+    case 'LOGIN_REQUIRED':
+    case 'NO_VIDEO':
     case 'MEMBERS_ONLY':
     case 'AGE_RESTRICTED':
     case 'GEO_BLOCKED':
@@ -326,23 +370,70 @@ function bestThumb(data) {
 }
 
 // Errors that will not change if the same link is tried again a minute later.
-const PERMANENT = new Set(['PRIVATE', 'MEMBERS_ONLY', 'REMOVED', 'BAD_URL', 'LIVE']);
+const PERMANENT = new Set(['PRIVATE', 'MEMBERS_ONLY', 'REMOVED', 'BAD_URL', 'LIVE', 'LOGIN_REQUIRED', 'NO_VIDEO']);
 
 // "post_live" = stream just ended and is still being processed by YouTube;
 // it can't be downloaded reliably yet.
 const isLive = (data) => !!data.is_live || ['is_live', 'is_upcoming', 'post_live'].includes(data.live_status);
 
-function buildInfo(data, url) {
+// Stable identity of a video across requests: the bare ID for YouTube (as
+// before), "Extractor:id" for other sites so IDs from different sites can't
+// collide.
+function videoKey(data, parsed) {
+  return parsed.site === 'YouTube' ? data.id || parsed.videoId : `${data.extractor_key || parsed.site}:${data.id}`;
+}
+
+// Video choices. Sites whose formats carry no height get one "Best" option.
+function videoChoices(data) {
+  const list = ytdlp.videoOptions(data);
+  if (list.length) return list;
+  const formats = Array.isArray(data.formats) ? data.formats : [];
+  // Some sites (Facebook...) report no codec or size at all; a format then
+  // counts as video if its container is a video one.
+  const isVideoish = (f) =>
+    f &&
+    f.vcodec !== 'none' &&
+    !!(
+      f.vcodec ||
+      f.width ||
+      f.height ||
+      (f.video_ext && f.video_ext !== 'none') ||
+      ['mp4', 'webm', 'mov', 'mkv', 'flv'].includes(f.ext)
+    );
+  const videos = formats.filter(isVideoish);
+  if (!videos.length) return [];
+  const best = videos[videos.length - 1]; // yt-dlp lists worst -> best
+  return [
+    {
+      id: 'video:0',
+      kind: 'video',
+      label: 'Best',
+      height: 0,
+      fps: 0,
+      ext: 'mp4',
+      codec: '',
+      compat: '',
+      needsMerge: false,
+      estimatedSize: ytdlp.formatBytes(best, Number(data.duration) || 0),
+    },
+  ];
+}
+
+function buildInfo(data, parsed) {
+  const url = parsed.url;
   let audio = null;
   try {
     audio = ytdlp.pickAudio(data);
   } catch {
-    /* no audio */
+    /* no audio-only track (common outside YouTube) */
   }
-  const best = ytdlp.pickBestAudio(data);
+  const best = ytdlp.pickAudioSource(data);
   const duration = Number(data.duration) || 0;
 
   return {
+    key: videoKey(data, parsed),
+    site: parsed.site,
+    needsLogin: !!parsed.login,
     videoId: data.id,
     url: data.webpage_url || url,
     title: data.title || 'Unknown title',
@@ -360,7 +451,8 @@ function buildInfo(data, url) {
     sourceBitrate: audio ? ytdlp.audioBitrate(audio) : 0,
     sourceSize: audio ? ytdlp.formatBytes(audio, duration) : 0,
     estimatedSizes: Object.fromEntries(QUALITIES.map((q) => [q, ytdlp.estimateSize(duration, q)])),
-    videoOptions: ytdlp.videoOptions(data),
+    hasAudio: !!best,
+    videoOptions: videoChoices(data),
     limits: {
       maxDurationSec: MAX_DURATION,
       maxFileBytes: jobs.maxFile,
@@ -368,10 +460,39 @@ function buildInfo(data, url) {
   };
 }
 
+// "Link not supported" error, naming the site when we recognise it.
+function badUrl(input) {
+  const name = ytdlp.unsupportedSite(input);
+  return name
+    ? ytdlp.err('BAD_URL', `${name} links aren't supported yet.`, ytdlp.ERRORS.BAD_URL.hint)
+    : ytdlp.err('BAD_URL');
+}
+
+// Optional "cut a part": { start, end } in whole seconds. Returns null when
+// absent; throws on nonsense. Checked against the real duration later.
+function parseCut(body) {
+  if (body?.start == null && body?.end == null) return null;
+  const start = Math.floor(Number(body.start));
+  const end = Math.floor(Number(body.end));
+  if (!Number.isFinite(start) || !Number.isFinite(end) || start < 0 || end - start < 1) {
+    throw ytdlp.err('FORMAT', 'Choose a start time before the end time.', 'The part must be at least 1 second long.');
+  }
+  return { start, end };
+}
+
+const fmtClock = (s) => {
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = String(s % 60).padStart(2, '0');
+  return h ? `${h}.${String(m).padStart(2, '0')}.${sec}` : `${m}.${sec}`;
+};
+
 // Turn a request into a job spec, validating everything up front.
 async function buildSpec(body, ip) {
+  const cut = parseCut(body);
+  const cutKey = cut ? `|cut:${cut.start}-${cut.end}` : '';
   const parsed = ytdlp.normalizeInput(body?.url);
-  if (!parsed) throw ytdlp.err('BAD_URL');
+  if (!parsed) throw badUrl(body?.url);
   if (!ytdlp.hasBinary()) throw ytdlp.err('NO_BINARY');
 
   const raw = String(body?.format || 'mp3').toLowerCase();
@@ -382,12 +503,15 @@ async function buildSpec(body, ip) {
 
   // Per-user and queue limits first: they are free, extraction is not.
   const quality = QUALITIES.includes(Number(body?.quality)) ? Number(body.quality) : 192;
+  // (For non-YouTube links the real ID is only known after extraction, so the
+  // pre-check can't detect a shared job; it just applies the limits.)
+  const hintId = parsed.videoId || parsed.url;
   const keyHint =
-    kind === 'video'
-      ? `${parsed.videoId}|video|${Number(body?.height) || 0}`
+    (kind === 'video'
+      ? `${hintId}|video|${Number(body?.height) || 0}`
       : kind === 'audio'
-        ? `${parsed.videoId}|audio`
-        : `${parsed.videoId}|mp3|${quality}`;
+        ? `${hintId}|audio`
+        : `${hintId}|mp3|${quality}`) + cutKey;
   jobs.precheck(ip, keyHint);
 
   const data = await getInfo(parsed.url);
@@ -401,13 +525,46 @@ async function buildSpec(body, ip) {
     throw ytdlp.err('TOO_LONG', `Videos longer than ${hours} hours can't be downloaded here.`);
   }
 
-  const id = data.id || parsed.videoId;
-  const safe = ytdlp.sanitizeFilename(data.title, id);
-  const base = { url: parsed.url, videoId: id, title: data.title, info: data, duration };
+  if (cut) {
+    if (cut.start >= duration) throw ytdlp.err('FORMAT', 'The start time is after the end of the video.');
+    cut.end = Math.min(cut.end, Math.ceil(duration));
+    if (cut.end - cut.start < 1) throw ytdlp.err('FORMAT', 'The part must be at least 1 second long.');
+  }
+  // Size estimates and progress totals shrink with the cut.
+  const share = cut ? Math.min(1, (cut.end - cut.start) / duration) : 1;
+  const scale = (n) => Math.round((Number(n) || 0) * share);
 
+  const id = videoKey(data, parsed);
+  const safe =
+    ytdlp.sanitizeFilename(data.title, String(data.id || 'video')) +
+    (cut ? ` (${fmtClock(cut.start)}-${fmtClock(cut.end)})` : '');
+  const base = { url: parsed.url, videoId: id, title: data.title, info: data, duration, cut };
+  const spec = buildFormatSpec(kind, body, data, { id, safe, base, duration, quality });
+  spec.key += cutKey;
+  spec.estimatedSize = scale(spec.estimatedSize);
+  if (spec.downloadSize) spec.downloadSize = scale(spec.downloadSize);
+  spec.parts = (spec.parts || []).map((p) => ({ ...p, size: scale(p.size) }));
+  return spec;
+}
+
+function buildFormatSpec(kind, body, data, { id, safe, base, duration, quality }) {
   if (kind === 'video') {
     const height = Number(body?.height);
-    if (!height) throw ytdlp.err('FORMAT', 'Choose a video quality.');
+    if (!Number.isFinite(height) || height < 0) throw ytdlp.err('FORMAT', 'Choose a video quality.');
+    if (height === 0) {
+      // "Best": sites that don't list resolutions. yt-dlp picks the best.
+      const est = videoChoices(data)[0]?.estimatedSize || 0;
+      return {
+        ...base,
+        key: `${id}|video|best`,
+        kind,
+        selector: 'bv*+ba/b',
+        parts: [],
+        estimatedSize: est,
+        baseName: safe,
+        filename: `${safe}.mp4`,
+      };
+    }
     const picked = ytdlp.pickVideoFormat(data, height);
     if (!picked) throw ytdlp.err('FORMAT', 'That video quality is not available.');
     const label = `${picked.height}p${picked.fps >= 50 ? picked.fps : ''}`;
@@ -438,7 +595,7 @@ async function buildSpec(body, ip) {
     };
   }
 
-  const src = ytdlp.pickBestAudio(data);
+  const src = ytdlp.pickAudioSource(data);
   if (!src) throw ytdlp.err('UNAVAILABLE', 'No audio track found for this video.');
   const srcSize = ytdlp.formatBytes(src, duration);
   return {
@@ -501,14 +658,77 @@ app.get('/api/health', rateLimit({ max: 120 }), async (req, res) => {
 
 app.post('/api/info', rateLimit({ max: 40 }), async (req, res) => {
   const parsed = ytdlp.normalizeInput(req.body?.url);
-  if (!parsed) return sendError(res, ytdlp.err('BAD_URL'));
+  if (!parsed) return sendError(res, badUrl(req.body?.url));
   if (!ytdlp.hasBinary()) return sendError(res, ytdlp.err('NO_BINARY'));
   try {
     const data = await getInfo(parsed.url);
     res.setHeader('Cache-Control', 'no-store');
-    res.json(buildInfo(data, parsed.url));
+    res.json(buildInfo(data, parsed));
+    // Other sites' image links are signed and expire within minutes: fetch the
+    // thumbnail now (in the background) so preview and download work later.
+    if (parsed.site !== 'YouTube') getThumbnail(parsed.url, data).catch(() => {});
   } catch (e) {
     console.error('[info]', e.code || '', e.message);
+    sendError(res, e);
+  }
+});
+
+// Thumbnails, downloaded completely and kept for a while: { buffer, type, name }.
+// Bounded by entry count; each image is at most 8 MB (typically ~150 KB).
+const thumbCache = new TTLMap(env('THUMB_CACHE_MS', 10 * 60 * 1000), env('THUMB_CACHE_MAX', 60));
+const thumbInflight = new Map();
+
+// Best image first (JPG before WebP; YouTube's largest sizes often don't
+// exist, so try the next one), through the SSRF-safe fetcher.
+function getThumbnail(url, data) {
+  const hit = thumbCache.get(url);
+  if (hit) return Promise.resolve(hit);
+  if (thumbInflight.has(url)) return thumbInflight.get(url);
+  const p = (async () => {
+    const list = (Array.isArray(data.thumbnails) ? data.thumbnails : []).filter((t) => t?.url).reverse();
+    const isWebp = (t) => /\.webp(\?|$)/i.test(t.url);
+    const candidates = [...list.filter((t) => !isWebp(t)), ...list.filter(isWebp)];
+    if (!candidates.length && data.thumbnail) candidates.push({ url: data.thumbnail });
+    for (const t of candidates.slice(0, 6)) {
+      try {
+        const img = await fetchImage(t.url);
+        const ext = { 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif', 'image/avif': 'avif' }[img.type];
+        const name = `${ytdlp.sanitizeFilename(data.title, String(data.id || 'thumbnail'))} (thumbnail).${ext || 'jpg'}`;
+        const entry = { buffer: img.buffer, type: img.type, name };
+        thumbCache.set(url, entry);
+        return entry;
+      } catch {
+        /* try the next size */
+      }
+    }
+    throw ytdlp.err('UNAVAILABLE', 'No thumbnail is available for this video.', 'Try again in a moment.');
+  })();
+  thumbInflight.set(url, p);
+  return p.finally(() => thumbInflight.delete(url));
+}
+
+// GET /api/thumbnail?url=<video link>  (&inline=1 to display instead of save).
+// Always a complete image with an exact Content-Length, or a JSON error.
+app.get('/api/thumbnail', rateLimit({ max: 60 }), async (req, res) => {
+  const parsed = ytdlp.normalizeInput(String(req.query.url || ''));
+  if (!parsed) return sendError(res, badUrl(req.query.url));
+  try {
+    const data = await getInfo(parsed.url);
+    const img = await getThumbnail(parsed.url, data);
+    res.setHeader('Content-Type', img.type);
+    res.setHeader('Content-Length', img.buffer.length);
+    // inline: shown in the page (other sites often block hotlinking, and this
+    // way the visitor's browser never contacts their servers).
+    res.setHeader(
+      'Content-Disposition',
+      contentDisposition(img.name, {
+        type: req.query.inline ? 'inline' : 'attachment',
+        fallback: asciiFallback(img.name),
+      })
+    );
+    res.setHeader('Cache-Control', 'private, max-age=3600');
+    res.end(img.buffer);
+  } catch (e) {
     sendError(res, e);
   }
 });
@@ -542,6 +762,86 @@ app.get('/api/jobs/:id', pollLimit, (req, res) => {
   }
   jobs.touch(job);
   res.json(jobs.view(job));
+});
+
+// Live progress (Server-Sent Events): one long-lived response per job that
+// receives a JSON job view whenever something changes, instead of the browser
+// asking every 0.8 s. Updates are coalesced to at most ~4 per second. The
+// stream ends when the job is ready/failed/gone; browsers without
+// EventSource (or behind proxies that break it) fall back to polling.
+const STREAMS_PER_IP = env('STREAMS_PER_IP', 8);
+const streamsByIp = new Map();
+
+app.get('/api/jobs/:id/events', pollLimit, (req, res) => {
+  const first = jobs.get(req.params.id);
+  if (!first) {
+    return res
+      .status(404)
+      .json({ error: 'This download expired. Please start it again.', code: 'NOT_FOUND', hint: '' });
+  }
+  const ip = clientIp(req);
+  const open = streamsByIp.get(ip) || 0;
+  if (open >= STREAMS_PER_IP) {
+    return res.status(429).json({ error: 'Too many open downloads.', code: 'RATE_LIMIT', hint: '' });
+  }
+  streamsByIp.set(ip, open + 1);
+
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream; charset=utf-8',
+    'Cache-Control': 'no-store',
+    'X-Accel-Buffering': 'no', // nginx: don't buffer this response
+    Connection: 'keep-alive',
+  });
+
+  const id = first.id;
+  let last = '';
+  let timer = null;
+  let closed = false;
+
+  const close = () => {
+    if (closed) return;
+    closed = true;
+    clearTimeout(timer);
+    clearInterval(heartbeat);
+    jobs.off('change', onChange);
+    const left = (streamsByIp.get(ip) || 1) - 1;
+    if (left > 0) streamsByIp.set(ip, left);
+    else streamsByIp.delete(ip);
+    res.end();
+  };
+
+  const send = () => {
+    timer = null;
+    if (closed) return;
+    const job = jobs.get(id);
+    if (!job) {
+      res.write('event: gone\ndata: {}\n\n');
+      return close();
+    }
+    jobs.touch(job); // an open stream counts as "still watching"
+    const data = JSON.stringify(jobs.view(job));
+    if (data !== last) {
+      last = data;
+      res.write(`data: ${data}\n\n`);
+    }
+    if (['ready', 'error', 'cancelled'].includes(job.status)) close();
+  };
+
+  const onChange = (job) => {
+    if (job.id === id && !timer) timer = setTimeout(send, 250);
+  };
+  jobs.on('change', onChange);
+
+  // Comment lines keep proxies from timing out an idle stream and keep the
+  // job from being treated as abandoned while it waits in the queue.
+  const heartbeat = setInterval(() => {
+    const job = jobs.get(id);
+    if (job) jobs.touch(job);
+    res.write(': ping\n\n');
+  }, 15000);
+
+  req.on('close', close);
+  send();
 });
 
 app.delete('/api/jobs/:id', pollLimit, (req, res) => {
@@ -642,6 +942,12 @@ app.post('/api/admin/update-ytdlp', rateLimit({ max: 5 }), async (req, res) => {
 
 app.use('/api', (req, res) => res.status(404).json({ error: 'Not found', code: 'NOT_FOUND' }));
 
+// Anything else: a friendly "page not found" that still contains the tool.
+app.use((req, res) => {
+  if (req.method === 'GET' && req.accepts('html')) return sendPage(res, site.notFound, req, 404);
+  res.status(404).type('text/plain').send('Not found');
+});
+
 // ---------------------------------------------------------------- start ------
 
 // HOST=127.0.0.1 keeps the app private behind a reverse proxy (nginx, Caddy,
@@ -696,6 +1002,10 @@ process.on('unhandledRejection', (e) => console.error('[unhandledRejection]', e)
 // After an unexpected exception the app state can't be trusted: exit and let
 // the process manager start a fresh copy instead of limping along.
 process.on('uncaughtException', (e) => {
+  // A closed log pipe (EPIPE) is not a reason to stop serving users.
+  if (e && e.code === 'EPIPE') return;
   console.error('[uncaughtException]', e);
   shutdown('uncaughtException', 1);
 });
+// Writing a log line to a closed terminal/pipe must never crash the server.
+for (const s of [process.stdout, process.stderr]) s.on('error', () => {});

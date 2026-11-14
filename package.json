@@ -10,6 +10,7 @@
     "setup": "node scripts/fetch-ytdlp.js",
     "setup:force": "node scripts/fetch-ytdlp.js --force",
     "postinstall": "node scripts/fetch-ytdlp.js",
+    "icons": "node scripts/build-icons.js",
     "lint": "eslint .",
     "format": "prettier --write \"**/*.{js,json,md}\"",
     "format:check": "prettier --check \"**/*.{js,json,md}\"",
@@ -39,8 +40,10 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@phosphor-icons/core": "^2.1.1",
     "eslint": "^10.14.0",
     "globals": "^17.14.0",
-    "prettier": "^3.10.1"
+    "prettier": "^3.10.1",
+    "simple-icons": "^16.37.0"
   }
 }

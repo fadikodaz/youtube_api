@@ -1,0 +1,624 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Option F: Site structure (header, menus, tool page, footer)</title>
+    <link rel="stylesheet" href="mockups.css" />
+    <style>
+      @font-face {
+        font-family: 'Bricolage Grotesque';
+        src: url('../public/fonts/bricolage-latin.woff2') format('woff2');
+        font-weight: 200 800;
+      }
+      .app {
+        --bg: #ffd43b;
+        --card: #fffdf5;
+        --soft: #fff4c2;
+        --ink: #161616;
+        --muted: #55524a;
+        --pop: #ff5d8f;
+        --mint: #3ddc97;
+        font-family: 'Bricolage Grotesque', system-ui, sans-serif;
+        background: var(--bg);
+        color: var(--ink);
+        font-weight: 500;
+        position: relative;
+      }
+      .app * {
+        box-sizing: border-box;
+      }
+      .box {
+        background: var(--card);
+        border: 3px solid var(--ink);
+        box-shadow: 4px 4px 0 var(--ink);
+      }
+      .wrap {
+        max-width: 1080px;
+        margin: 0 auto;
+        padding: 0 24px;
+      }
+      /* header */
+      .hdr {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        padding: 14px 0;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 800;
+        font-size: 22px;
+      }
+      .logo {
+        width: 32px;
+        height: 32px;
+        border: 3px solid var(--ink);
+        border-radius: 10px;
+        background: var(--pop);
+        display: grid;
+        place-items: center;
+        font-size: 15px;
+      }
+      .menu {
+        display: flex;
+        gap: 4px;
+        margin-left: 12px;
+      }
+      .menu > div {
+        position: relative;
+        padding: 8px 12px;
+        border-radius: 12px;
+        font-weight: 800;
+      }
+      .menu .open {
+        background: var(--card);
+        border: 3px solid var(--ink);
+        padding: 5px 9px;
+      }
+      .dd {
+        position: absolute;
+        top: 46px;
+        left: -3px;
+        width: 250px;
+        border-radius: 16px;
+        padding: 8px;
+        z-index: 5;
+      }
+      .dd a {
+        display: block;
+        padding: 9px 10px;
+        border-radius: 10px;
+        font-weight: 700;
+      }
+      .dd a small {
+        display: block;
+        font-weight: 500;
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .dd a.cur {
+        background: var(--soft);
+      }
+      .hdr-end {
+        margin-left: auto;
+        display: flex;
+        gap: 8px;
+      }
+      .ibtn {
+        height: 42px;
+        min-width: 42px;
+        padding: 0 10px;
+        border: 3px solid var(--ink);
+        border-radius: 12px;
+        background: var(--card);
+        display: grid;
+        place-items: center;
+        font-weight: 800;
+        box-shadow: 3px 3px 0 var(--ink);
+      }
+      /* breadcrumbs + hero */
+      .crumbs {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--muted);
+        margin: 4px 0 10px;
+      }
+      .crumbs b {
+        color: var(--ink);
+      }
+      .hero {
+        border-radius: 24px;
+        padding: 24px;
+      }
+      .hero h1 {
+        margin: 0 0 6px;
+        font-size: 40px;
+        line-height: 1.02;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+      }
+      .hero p {
+        margin: 0 0 14px;
+        color: var(--muted);
+      }
+      .intake {
+        display: flex;
+        gap: 10px;
+      }
+      .field {
+        flex: 1;
+        height: 54px;
+        border: 3px solid var(--ink);
+        border-radius: 16px;
+        background: #fff;
+        display: flex;
+        align-items: center;
+        padding: 0 14px;
+        color: #77736a;
+      }
+      .cta {
+        height: 54px;
+        padding: 0 24px;
+        border-radius: 16px;
+        background: var(--ink);
+        color: #fff;
+        font-weight: 800;
+        display: grid;
+        place-items: center;
+      }
+      .terms {
+        margin: 10px 0 0;
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .terms u {
+        color: var(--ink);
+      }
+      .paste {
+        height: 92px;
+        border: 3px dashed var(--ink);
+        border-radius: 18px;
+        background: var(--soft);
+        display: grid;
+        place-content: center;
+        text-align: center;
+        font-weight: 800;
+        margin-bottom: 10px;
+      }
+      .paste small {
+        display: block;
+        font-weight: 500;
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .tabs {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin: 16px 0;
+      }
+      .tabs span {
+        padding: 6px 14px;
+        border: 3px solid var(--ink);
+        border-radius: 99px;
+        background: var(--card);
+        font-weight: 800;
+        font-size: 14px;
+      }
+      .tabs .on {
+        background: var(--pop);
+      }
+      /* content */
+      .sec {
+        border-radius: 24px;
+        padding: 22px;
+        margin-bottom: 18px;
+      }
+      .sec h2 {
+        margin: 0 0 10px;
+        font-size: 24px;
+        font-weight: 800;
+      }
+      .sec p {
+        margin: 0 0 10px;
+        color: var(--muted);
+        line-height: 1.5;
+      }
+      .sec a {
+        color: var(--ink);
+        font-weight: 800;
+        text-decoration: underline;
+      }
+      .steps {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 14px;
+      }
+      .step {
+        border: 3px solid var(--ink);
+        border-radius: 18px;
+        background: #fff;
+        padding: 12px;
+      }
+      .step svg {
+        width: 100%;
+        height: 120px;
+        display: block;
+        background: var(--soft);
+        border-radius: 12px;
+        border: 2px solid var(--ink);
+        margin-bottom: 8px;
+      }
+      .step b {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+      .num {
+        width: 28px;
+        height: 28px;
+        border: 3px solid var(--ink);
+        border-radius: 50%;
+        background: var(--mint);
+        display: grid;
+        place-items: center;
+        font-size: 13px;
+        flex: none;
+      }
+      .tip {
+        margin-top: 14px;
+        border: 3px dashed var(--ink);
+        border-radius: 16px;
+        padding: 12px 14px;
+        background: var(--soft);
+      }
+      .tip code {
+        font-family: inherit;
+        font-weight: 800;
+        background: #fff;
+        border: 2px solid var(--ink);
+        border-radius: 8px;
+        padding: 1px 6px;
+      }
+      .feats {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 10px;
+      }
+      .feat {
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+      }
+      .feat i {
+        flex: none;
+        width: 30px;
+        height: 30px;
+        border: 3px solid var(--ink);
+        border-radius: 10px;
+        background: var(--mint);
+        display: grid;
+        place-items: center;
+        font-style: normal;
+        font-weight: 800;
+      }
+      .feat b {
+        display: block;
+      }
+      .feat span {
+        font-size: 13px;
+        color: var(--muted);
+      }
+      .faq div {
+        display: flex;
+        justify-content: space-between;
+        padding: 11px 0;
+        border-top: 2px solid var(--soft);
+        font-weight: 700;
+      }
+      .faq div:first-of-type {
+        border-top: 0;
+      }
+      .faq div::after {
+        content: '+';
+        width: 24px;
+        height: 24px;
+        border: 2px solid var(--ink);
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        flex: none;
+      }
+      .faq div.open::after {
+        content: '–';
+        background: var(--pop);
+      }
+      .faq p.ans {
+        margin: -4px 0 10px;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+        gap: 10px;
+      }
+      .tool {
+        border: 3px solid var(--ink);
+        border-radius: 16px;
+        background: #fff;
+        padding: 10px 12px;
+        font-weight: 800;
+        box-shadow: 3px 3px 0 var(--ink);
+      }
+      .tool small {
+        display: block;
+        font-weight: 500;
+        color: var(--muted);
+        font-size: 12px;
+      }
+      /* footer */
+      .foot {
+        background: var(--ink);
+        color: #fff8e1;
+        margin-top: 26px;
+        padding: 26px 0 20px;
+      }
+      .fcols {
+        display: grid;
+        grid-template-columns: 1.3fr repeat(5, 1fr);
+        gap: 18px;
+      }
+      .fcols b {
+        display: block;
+        color: var(--bg);
+        margin-bottom: 6px;
+      }
+      .fcols div span {
+        display: block;
+        font-size: 14px;
+        padding: 3px 0;
+        color: #e9e3cf;
+      }
+      .langs {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin: 20px 0 12px;
+      }
+      .langs span {
+        border: 2px solid #fff8e1;
+        border-radius: 99px;
+        padding: 3px 10px;
+        font-size: 13px;
+        font-weight: 700;
+      }
+      .langs .on {
+        background: var(--bg);
+        color: var(--ink);
+        border-color: var(--bg);
+      }
+      .fine {
+        font-size: 12px;
+        color: #bdb6a0;
+      }
+      /* mobile */
+      .m .wrap {
+        padding: 0 14px;
+      }
+      .m .menu,
+      .m .hdr-lang {
+        display: none;
+      }
+      .m .hero {
+        padding: 16px;
+        border-radius: 20px;
+      }
+      .m .hero h1 {
+        font-size: 30px;
+      }
+      .m .cta {
+        padding: 0 16px;
+      }
+      .m .steps {
+        grid-template-columns: 1fr;
+      }
+      .m .fcols {
+        grid-template-columns: 1fr 1fr;
+      }
+      .m .tabs {
+        flex-wrap: nowrap;
+        overflow: hidden;
+      }
+      .m .tabs span {
+        white-space: nowrap;
+      }
+      .m .sec h2 {
+        font-size: 21px;
+      }
+      .drawer {
+        position: absolute;
+        inset: 0;
+        background: rgb(22 22 22 / 0.45);
+        z-index: 9;
+      }
+      .drawer .panel {
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        width: 82%;
+        background: var(--card);
+        border-left: 3px solid var(--ink);
+        padding: 16px;
+        overflow: hidden;
+      }
+      .drawer h4 {
+        margin: 14px 0 4px;
+        font-size: 13px;
+        color: var(--muted);
+      }
+      .drawer a {
+        display: block;
+        padding: 9px 4px;
+        font-weight: 800;
+        border-bottom: 2px solid var(--soft);
+      }
+      .drawer a.cur {
+        color: var(--pop);
+      }
+      .scroll {
+        will-change: transform;
+      }
+      .desk {
+        width: 1280px;
+        border-radius: 16px;
+        overflow: hidden;
+        border: 8px solid #111;
+        box-shadow: 0 10px 30px rgb(0 0 0 / 0.18);
+      }
+    </style>
+  </head>
+  <body>
+    <header class="mock-head">
+      <h1>Option F: Site structure (example page: "YouTube to MP3")</h1>
+      <p>
+        Header with platform menus (YouTube menu shown open), breadcrumbs, the tool with the "you accept the Terms"
+        line, sister-page tabs, intro with links, illustrated steps with the ytpocket.com/ shortcut, features, FAQ,
+        related tools and a big footer with link groups, legal pages and languages. All extra content hides once a video
+        is loaded, like now. <a href="index.html">Back to all options</a>
+      </p>
+    </header>
+
+    <div class="frames">
+      <figure>
+        <figcaption>Desktop: full page</figcaption>
+        <div class="desk"><div class="app" id="desktop"></div></div>
+      </figure>
+    </div>
+    <div class="frames" id="phones"></div>
+
+    <script>
+      const ill = {
+        copy: `<svg viewBox="0 0 200 120"><rect x="70" y="8" width="60" height="104" rx="10" fill="#fff" stroke="#161616" stroke-width="3"/><rect x="78" y="20" width="44" height="26" rx="4" fill="#ff5d8f"/><rect x="60" y="62" width="80" height="40" rx="10" fill="#fffdf5" stroke="#161616" stroke-width="3"/><text x="100" y="80" font-size="11" font-weight="800" text-anchor="middle" font-family="sans-serif">Share</text><text x="100" y="95" font-size="10" text-anchor="middle" font-family="sans-serif">Copy link</text><path d="M150 40l12-10M150 50h16" stroke="#161616" stroke-width="3" stroke-linecap="round"/></svg>`,
+        paste: `<svg viewBox="0 0 200 120"><rect x="16" y="40" width="120" height="36" rx="10" fill="#fff" stroke="#161616" stroke-width="3"/><text x="28" y="63" font-size="11" font-family="sans-serif" fill="#77736a">youtu.be/aqz-KE…</text><rect x="142" y="40" width="44" height="36" rx="10" fill="#161616"/><text x="164" y="62" font-size="10" fill="#fff" font-weight="800" text-anchor="middle" font-family="sans-serif">Get</text><path d="M60 100l10-14 10 14" fill="none" stroke="#161616" stroke-width="3" stroke-linejoin="round"/></svg>`,
+        save: `<svg viewBox="0 0 200 120"><rect x="24" y="16" width="152" height="88" rx="12" fill="#fffdf5" stroke="#161616" stroke-width="3"/><text x="40" y="44" font-size="12" font-weight="800" font-family="sans-serif">MP3 192 kbps</text><text x="40" y="78" font-size="12" font-weight="800" font-family="sans-serif">MP3 128 kbps</text><circle cx="150" cy="40" r="13" fill="#3ddc97" stroke="#161616" stroke-width="3"/><path d="M150 33v12M145 41l5 5 5-5" fill="none" stroke="#161616" stroke-width="2.5" stroke-linecap="round"/><circle cx="150" cy="74" r="13" fill="#3ddc97" stroke="#161616" stroke-width="3"/><path d="M150 67v12M145 75l5 5 5-5" fill="none" stroke="#161616" stroke-width="2.5" stroke-linecap="round"/></svg>`,
+      };
+      const header = (mobile, menuOpen) => `
+        <div class="wrap"><div class="hdr">
+          <div class="brand"><span class="logo">↓</span>YTPocket</div>
+          <nav class="menu">
+            <div class="${menuOpen ? 'open' : ''}">YouTube ▾
+              ${
+                menuOpen
+                  ? `<div class="dd box">
+                <a>Video downloader<small>MP4 up to 4K</small></a>
+                <a class="cur">YouTube to MP3<small>Audio only</small></a>
+                <a>YouTube to MP4<small>Pick a quality</small></a>
+                <a>Shorts downloader<small>Vertical videos</small></a>
+                <a>Thumbnail downloader<small>HD cover image</small></a></div>`
+                  : ''
+              }
+            </div>
+            <div>TikTok</div><div>Facebook</div><div>More ▾</div>
+          </nav>
+          <div class="hdr-end"><span class="ibtn">☾</span><span class="ibtn hdr-lang">EN ▾</span>${mobile ? '<span class="ibtn">☰</span>' : ''}</div>
+        </div></div>`;
+      const page = (mobile) => `
+        ${header(mobile, !mobile)}
+        <div class="wrap">
+          <div class="crumbs">Home › YouTube › <b>YouTube to MP3</b></div>
+          <section class="hero box">
+            <h1>YouTube to MP3 converter</h1>
+            <p>Save the sound of any YouTube video as MP3. Free, no sign-up.</p>
+            ${mobile ? '<div class="paste">Tap to paste link<small>or share from the YouTube app</small></div>' : ''}
+            <div class="intake"><div class="field">Paste link here</div><div class="cta">Get MP3</div></div>
+            <p class="terms">By using YTPocket you accept the <u>Terms</u> and <u>Privacy Policy</u>.</p>
+          </section>
+          <div class="tabs"><span>Video downloader</span><span class="on">To MP3</span><span>To MP4</span><span>Shorts</span><span>Thumbnail</span></div>
+          <section class="sec box">
+            <h2>Turn YouTube videos into MP3</h2>
+            <p>Paste a YouTube link and get an MP3 at 128 or 192 kbps (320 kbps when the video’s sound is good enough). The file includes the title and cover picture, so it looks right in your music app.</p>
+            <p>Need the picture too? Use the <a>YouTube video downloader</a> or <a>YouTube to MP4</a>. Saving a TikTok sound? Try <a>TikTok to MP3</a>.</p>
+          </section>
+          <section class="sec box">
+            <h2>How to convert YouTube to MP3</h2>
+            <div class="steps">
+              <div class="step">${ill.copy}<b><span class="num">1</span>Copy the link</b><p>In YouTube, tap Share, then Copy link.</p></div>
+              <div class="step">${ill.paste}<b><span class="num">2</span>Paste it here</b><p>Paste the link above and tap Get MP3.</p></div>
+              <div class="step">${ill.save}<b><span class="num">3</span>Pick a quality</b><p>Tap 128 or 192 kbps. The MP3 saves to your device.</p></div>
+            </div>
+            <div class="tip"><b>Shortcut:</b> in your browser’s address bar, type <code>ytpocket.com/</code> before any video link and press Enter.</div>
+          </section>
+          <section class="sec box">
+            <h2>What you get</h2>
+            <div class="feats">
+              <div class="feat"><i>♪</i><div><b>Title and cover art</b><span>Shows nicely in music players</span></div></div>
+              <div class="feat"><i>3</i><div><b>3 qualities</b><span>128, 192 or 320 kbps</span></div></div>
+              <div class="feat"><i>📱</i><div><b>Phone or computer</b><span>Nothing to install</span></div></div>
+              <div class="feat"><i>✓</i><div><b>No sign-up</b><span>Free, no limits</span></div></div>
+              <div class="feat"><i>⏱</i><div><b>Private</b><span>Files deleted after 15 minutes</span></div></div>
+            </div>
+          </section>
+          <section class="sec box faq">
+            <h2>Questions and answers</h2>
+            <div class="open">Which MP3 quality should I choose?</div>
+            <p class="ans">192 kbps sounds as good as the YouTube original for almost everyone. 128 kbps makes smaller files.</p>
+            <div>Can I convert long videos and mixes?</div>
+            <div>Is it free?</div>
+            <div>Where do the files go?</div>
+            <div>Is it legal?</div>
+          </section>
+          <section class="sec box">
+            <h2>More tools</h2>
+            <div class="grid">
+              <div class="tool">TikTok downloader<small>Videos as MP4</small></div>
+              <div class="tool">TikTok to MP3<small>Just the sound</small></div>
+              <div class="tool">Facebook video<small>Public videos</small></div>
+              <div class="tool">Facebook Reels<small>Short videos</small></div>
+              <div class="tool">Pinterest video<small>Video pins</small></div>
+              <div class="tool">Dailymotion<small>Up to 1080p</small></div>
+              <div class="tool">Twitch clips<small>Clips and VODs</small></div>
+              <div class="tool">Thumbnail downloader<small>HD cover image</small></div>
+            </div>
+          </section>
+        </div>
+        <footer class="foot"><div class="wrap">
+          <div class="fcols">
+            <div><div class="brand" style="color:#fff8e1"><span class="logo">↓</span>YTPocket</div><span style="margin-top:8px">Free downloader for videos and MP3.</span></div>
+            <div><b>YouTube</b><span>Video downloader</span><span>YouTube to MP3</span><span>YouTube to MP4</span><span>Shorts</span><span>Thumbnail</span></div>
+            <div><b>TikTok</b><span>TikTok downloader</span><span>TikTok to MP3</span></div>
+            <div><b>Facebook</b><span>Video downloader</span><span>Reels</span></div>
+            <div><b>More</b><span>Pinterest</span><span>Dailymotion</span><span>Twitch clips</span></div>
+            <div><b>YTPocket</b><span>Terms</span><span>Privacy</span><span>Copyright (DMCA)</span><span>Contact</span></div>
+          </div>
+          <div class="langs"><span class="on">English</span><span>اردو</span><span>हिन्दी</span><span>العربية</span><span>Español</span><span>Bahasa Indonesia</span><span>Português</span></div>
+          <div class="fine">© 2026 YTPocket. Not affiliated with YouTube, TikTok, Meta, Pinterest, Dailymotion or Twitch. Only download videos you have the right to.</div>
+        </div></footer>`;
+
+      document.getElementById('desktop').innerHTML = page(false);
+
+      // Phones: the same page at different scroll positions, plus the menu.
+      const drawer = `<div class="drawer"><div class="panel">
+          <div class="brand"><span class="logo">↓</span>YTPocket<span class="ibtn" style="margin-left:auto">✕</span></div>
+          <h4>YouTube</h4><a>Video downloader</a><a class="cur">YouTube to MP3</a><a>YouTube to MP4</a><a>Shorts downloader</a><a>Thumbnail downloader</a>
+          <h4>Other sites</h4><a>TikTok</a><a>Facebook</a><a>Pinterest</a><a>Dailymotion</a><a>Twitch</a>
+          <h4>Language</h4><a>English ▾</a></div></div>`;
+      const phones = [
+        ['1. Top of the page', 0, false],
+        ['2. Menu (☰) open', 0, true],
+        ['3. Scrolling down: steps and shortcut', 720, false],
+        ['4. Bottom: tools and footer', 99999, false],
+      ];
+      const host = document.getElementById('phones');
+      for (const [cap, y, menu] of phones) {
+        const fig = document.createElement('figure');
+        fig.innerHTML = `<figcaption>${cap}</figcaption><div class="phone"><div class="app m"><div class="scroll">${page(true)}</div>${menu ? drawer : ''}</div></div>`;
+        host.append(fig);
+        const scroll = fig.querySelector('.scroll');
+        const max = scroll.scrollHeight - 764;
+        scroll.style.transform = `translateY(-${Math.min(y, max)}px)`;
+      }
+    </script>
+  </body>
+</html>

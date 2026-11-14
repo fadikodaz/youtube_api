@@ -3,7 +3,7 @@ const js = require('@eslint/js');
 const globals = require('globals');
 
 module.exports = [
-  { ignores: ['node_modules/', 'bin/', '.opencode/'] },
+  { ignores: ['node_modules/', 'bin/', '.opencode/', 'mockups/icons-sprite.js'] },
   js.configs.recommended,
   {
     files: ['**/*.js'],

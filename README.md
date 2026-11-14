@@ -10,7 +10,23 @@ accounts, files never leave your server except to the user who asked for them.
 - **Audio:** MP3 128 / 192 / 256 / 320 kbps (with title, artist and square
   cover art), or the original audio track without re-encoding (`.m4a`/`.webm`).
 - **Video:** MP4 at every available resolution, 144p up to 4K / 60 fps, with
-  codec and compatibility notes (H.264 plays everywhere).
+  title, channel, chapters and the thumbnail embedded as cover art.
+- **Thumbnail download:** the best available image as JPG (downloaded and
+  cached by the server, so it's complete and fast).
+- **Platform pages:** `/` (YouTube), `/tiktok-downloader`,
+  `/facebook-video-downloader`, `/pinterest-video-downloader`,
+  `/dailymotion-downloader`, `/twitch-clip-downloader`. Each has its own title,
+  headline, how-to, FAQ (with FAQ structured data) and canonical link; any
+  supported link works on any page. Defined in `lib/pages.js`, rendered from
+  `views/page.html`. Also `/sitemap.xml` and `/robots.txt`.
+- **Supported sites:** YouTube, TikTok, Facebook, Pinterest, Dailymotion and
+  Twitch (allow-list in `lib/ytdlp.js`). Instagram, X, Vimeo, Reddit and
+  SoundCloud links get a polite "not supported yet" (they need a signed-in
+  account for most videos). TikTok blocks some networks/regions.
+- **Cut a part** (start/end) is supported by the API but hidden in the UI until
+  it gets a timeline with video frames.
+- **Live progress:** the server pushes progress (Server-Sent Events); falls
+  back to polling automatically.
 - **Simple flow:** paste a link, tap **Get video**, pick MP4 or MP3 and a
   quality. That row becomes its own progress bar (percent, speed, time left)
   while the server prepares the file, then the file saves automatically. Tap
@@ -21,13 +37,14 @@ accounts, files never leave your server except to the user who asked for them.
 - **Installable app (PWA):** add it to your home screen; on Android, share a
   video from the YouTube app straight to YTPocket. Links like `/?url=...` or
   `/?v=VIDEO_ID` open a video directly.
-- **Phone first:** big "tap to paste" area, bottom-sheet format list, inline
-  preview, drag & drop, light (yellow) and dark themes following your device,
-  keyboard and screen-reader friendly.
+- **Phone first:** big "tap to paste" area, bottom-sheet format list, drag &
+  drop, yellow design with an optional dark mode (moon button), keyboard and
+  screen-reader friendly.
 - **Resilient:** fallback YouTube clients, retries, friendly error messages,
   metadata caching, automatic yt-dlp updates.
-- **Safe to expose:** strict input validation (only YouTube links), per-user
-  and global limits, disk-space guard, CSP and security headers, admin token.
+- **Safe to expose:** strict input validation (allow-listed sites only),
+  SSRF-safe thumbnail fetching, per-user and global limits, disk-space guard,
+  strict CSP and security headers, admin token.
 
 ## Quick start (local)
 
@@ -75,15 +92,17 @@ documented there. The most important ones:
 
 All errors are JSON: `{ "error": "...", "code": "BOT_CHECK", "hint": "..." }`.
 
-| Method   | Route                     | Description                                                         |
-| -------- | ------------------------- | ------------------------------------------------------------------- |
-| `GET`    | `/api/health`             | `{ ok }`; with admin token also versions, jobs, disk, memory        |
-| `POST`   | `/api/info`               | `{ url }` → title, duration, thumbnail, audio + video options       |
-| `POST`   | `/api/jobs`               | `{ url, format: "mp3"\|"audio"\|"video", quality?, height? }` → job |
-| `GET`    | `/api/jobs/:id`           | Job progress: `status`, `percent`, `speed`, `eta`, `position`...    |
-| `DELETE` | `/api/jobs/:id`           | Cancel                                                              |
-| `GET`    | `/api/jobs/:id/file`      | The finished file (supports Range / resume)                         |
-| `POST`   | `/api/admin/update-ytdlp` | Update yt-dlp now (`ALLOW_UPDATE=1` + `Authorization: Bearer ...`)  |
+| Method   | Route                     | Description                                                                                                                                 |
+| -------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET`    | `/api/health`             | `{ ok }`; with admin token also versions, jobs, disk, memory                                                                                |
+| `POST`   | `/api/info`               | `{ url }` → title, duration, thumbnail, audio + video options                                                                               |
+| `POST`   | `/api/jobs`               | `{ url, format: "mp3"\|"audio"\|"video", quality?, height?, start?, end? }` → job (`height: 0` = best; `start`/`end` in seconds cut a part) |
+| `GET`    | `/api/jobs/:id`           | Job progress: `status`, `percent`, `speed`, `eta`, `position`...                                                                            |
+| `GET`    | `/api/jobs/:id/events`    | Same, pushed live (Server-Sent Events) until ready/failed                                                                                   |
+| `GET`    | `/api/thumbnail?url=`     | Best thumbnail as a download (`&inline=1` to display it)                                                                                    |
+| `DELETE` | `/api/jobs/:id`           | Cancel                                                                                                                                      |
+| `GET`    | `/api/jobs/:id/file`      | The finished file (supports Range / resume)                                                                                                 |
+| `POST`   | `/api/admin/update-ytdlp` | Update yt-dlp now (`ALLOW_UPDATE=1` + `Authorization: Bearer ...`)                                                                          |
 
 Job `status` goes `queued → downloading → processing → ready` (or `error` /
 `cancelled`). Unpolled jobs are cancelled after 3 minutes.

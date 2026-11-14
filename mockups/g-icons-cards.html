@@ -1,0 +1,1007 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Option G: Real icons, step cards and tool cards</title>
+    <link rel="stylesheet" href="mockups.css" />
+    <script src="icons-sprite.js"></script>
+    <style>
+      @font-face {
+        font-family: 'Bricolage Grotesque';
+        src: url('../public/fonts/bricolage-latin.woff2') format('woff2');
+        font-weight: 200 800;
+      }
+      .app {
+        --bg: #ffd43b;
+        --card: #fffdf5;
+        --soft: #fff4c2;
+        --ink: #161616;
+        --muted: #55524a;
+        --pop: #ff5d8f;
+        --pop-soft: #ffc2d5;
+        --mint: #3ddc97;
+        font-family: 'Bricolage Grotesque', system-ui, sans-serif;
+        background: var(--bg);
+        color: var(--ink);
+        font-weight: 500;
+        padding: 26px;
+        border-radius: 16px;
+      }
+      .app * {
+        box-sizing: border-box;
+      }
+      .sheet {
+        max-width: 1180px;
+        margin: 0 auto 26px;
+      }
+      .label {
+        font: 700 14px system-ui;
+        color: #3d434b;
+        margin: 0 0 8px;
+      }
+      .ic {
+        width: 22px;
+        height: 22px;
+        flex: none;
+      }
+      .box {
+        background: var(--card);
+        border: 3px solid var(--ink);
+        box-shadow: 4px 4px 0 var(--ink);
+        border-radius: 24px;
+      }
+
+      /* header */
+      .hdr {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        font-weight: 800;
+        font-size: 22px;
+      }
+      .logo {
+        width: 36px;
+        height: 36px;
+        border: 3px solid var(--ink);
+        border-radius: 11px;
+        background: var(--pop);
+        display: grid;
+        place-items: center;
+      }
+      .logo .ic {
+        width: 20px;
+        height: 20px;
+      }
+      .menu {
+        display: flex;
+        gap: 2px;
+        margin-left: 10px;
+      }
+      .menu span {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        padding: 8px 12px;
+        border-radius: 12px;
+        font-weight: 800;
+      }
+      .menu span .ic {
+        width: 14px;
+        height: 14px;
+      }
+      .menu .on {
+        background: var(--card);
+        box-shadow: inset 0 0 0 3px var(--ink);
+      }
+      .hdr-end {
+        margin-left: auto;
+        display: flex;
+        gap: 8px;
+      }
+      .ibtn {
+        height: 44px;
+        min-width: 44px;
+        padding: 0 10px;
+        gap: 6px;
+        border: 3px solid var(--ink);
+        border-radius: 12px;
+        background: var(--card);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 800;
+        box-shadow: 3px 3px 0 var(--ink);
+      }
+      .ibtn .ic {
+        width: 20px;
+        height: 20px;
+      }
+      .crumbs {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        margin-top: 14px;
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--muted);
+      }
+      .crumbs .ic {
+        width: 12px;
+        height: 12px;
+      }
+      .crumbs b {
+        color: var(--ink);
+      }
+
+      /* section heading */
+      .sec {
+        padding: 24px;
+      }
+      .sec h2 {
+        margin: 0 0 16px;
+        font-size: 26px;
+        font-weight: 800;
+        letter-spacing: -0.01em;
+      }
+
+      /* step cards: a "stage" showing the real interface + text */
+      .steps {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+      }
+      .step {
+        border: 3px solid var(--ink);
+        border-radius: 20px;
+        background: #fff;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+      .stage {
+        height: 190px;
+        position: relative;
+        border-bottom: 3px solid var(--ink);
+        background-color: var(--soft);
+        background-image: radial-gradient(rgb(22 22 22 / 0.12) 1.2px, transparent 1.2px);
+        background-size: 14px 14px;
+        display: grid;
+        place-items: center;
+        overflow: hidden;
+      }
+      .step-text {
+        padding: 14px 16px 16px;
+      }
+      .step-text b {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 18px;
+      }
+      .num {
+        width: 32px;
+        height: 32px;
+        border: 3px solid var(--ink);
+        border-radius: 50%;
+        background: var(--mint);
+        display: grid;
+        place-items: center;
+        font-size: 14px;
+        font-weight: 800;
+        flex: none;
+      }
+      .step-text p {
+        margin: 6px 0 0;
+        color: var(--muted);
+      }
+      .hand {
+        position: absolute;
+        width: 34px;
+        height: 34px;
+        color: var(--ink);
+        filter: drop-shadow(2px 2px 0 #fff);
+      }
+
+      /* stage 1: phone with share sheet */
+      .phone-mini {
+        position: absolute;
+        top: 16px;
+        width: 132px;
+        height: 230px;
+        border: 3px solid var(--ink);
+        border-radius: 22px;
+        background: #fff;
+        padding: 8px;
+        box-shadow: 4px 4px 0 var(--ink);
+        position: relative;
+      }
+      .phone-mini .video {
+        height: 62px;
+        border-radius: 10px;
+        border: 2px solid var(--ink);
+        display: grid;
+        place-items: center;
+        color: #fff;
+      }
+      .phone-mini .video .ic {
+        width: 30px;
+        height: 30px;
+      }
+      .share {
+        position: absolute;
+        left: -30px;
+        right: -30px;
+        top: 70px;
+        border: 3px solid var(--ink);
+        border-radius: 16px;
+        background: var(--card);
+        padding: 8px;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 6px;
+        box-shadow: 3px 3px 0 var(--ink);
+      }
+      .share div {
+        display: grid;
+        justify-items: center;
+        gap: 3px;
+        font-size: 11px;
+        font-weight: 700;
+      }
+      .share i {
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        border: 2px solid var(--ink);
+        display: grid;
+        place-items: center;
+        background: #fff;
+      }
+      .share i .ic {
+        width: 18px;
+        height: 18px;
+      }
+      .share .hit {
+        position: relative;
+      }
+      .share .hit .hand {
+        left: 30px;
+        top: 6px;
+        width: 24px;
+        height: 24px;
+      }
+      .share .hit i {
+        background: var(--pop);
+      }
+
+      /* stage 2: our real link box */
+      .mini-intake {
+        width: 86%;
+        display: flex;
+        gap: 6px;
+        padding: 8px;
+        border: 3px solid var(--ink);
+        border-radius: 16px;
+        background: var(--card);
+        box-shadow: 4px 4px 0 var(--ink);
+      }
+      .mini-intake .f {
+        flex: 1;
+        height: 40px;
+        border: 3px solid var(--ink);
+        border-radius: 11px;
+        background: #fff;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 0 9px;
+        font-size: 13px;
+        overflow: hidden;
+        white-space: nowrap;
+      }
+      .mini-intake .f .ic {
+        width: 16px;
+        height: 16px;
+        color: var(--muted);
+      }
+      .mini-intake .b {
+        height: 40px;
+        padding: 0 12px;
+        border-radius: 11px;
+        background: var(--ink);
+        color: #fff;
+        font-weight: 800;
+        font-size: 14px;
+        display: grid;
+        place-items: center;
+      }
+      .pasted {
+        position: absolute;
+        top: 30px;
+        left: 22px;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        padding: 4px 10px;
+        border: 2px solid var(--ink);
+        border-radius: 99px;
+        background: var(--mint);
+        font-size: 12px;
+        font-weight: 800;
+      }
+      .pasted .ic {
+        width: 14px;
+        height: 14px;
+      }
+
+      /* stage 3: our real format rows */
+      .mini-sheet {
+        width: 88%;
+        padding: 10px;
+        border: 3px solid var(--ink);
+        border-radius: 18px;
+        background: var(--card);
+        box-shadow: 4px 4px 0 var(--ink);
+        display: grid;
+        gap: 6px;
+      }
+      .mini-tabs {
+        display: flex;
+        gap: 6px;
+      }
+      .mini-tabs span {
+        flex: 1;
+        text-align: center;
+        padding: 4px;
+        border: 2px solid var(--ink);
+        border-radius: 10px;
+        font-size: 11px;
+        font-weight: 800;
+      }
+      .mini-tabs .on {
+        background: var(--pop);
+      }
+      .mini-row {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 5px 6px;
+        border-radius: 11px;
+        border: 2px solid transparent;
+        overflow: hidden;
+      }
+      .mini-row .t {
+        flex: 1;
+        position: relative;
+        font-weight: 800;
+        font-size: 14.5px;
+        line-height: 1.15;
+      }
+      .mini-row .t small {
+        display: block;
+        font-weight: 500;
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .mini-row .c {
+        position: relative;
+        width: 32px;
+        height: 32px;
+        border: 2px solid var(--ink);
+        border-radius: 50%;
+        background: var(--mint);
+        display: grid;
+        place-items: center;
+        font-size: 10px;
+        font-weight: 800;
+      }
+      .mini-row .c .ic {
+        width: 16px;
+        height: 16px;
+      }
+      .mini-row.busy {
+        border-color: var(--ink);
+        background: #fff;
+      }
+      .mini-row.busy::before {
+        content: '';
+        position: absolute;
+        inset: 0 36% 0 0;
+        background: repeating-linear-gradient(45deg, var(--pop-soft) 0 7px, #ffdfe9 7px 14px);
+      }
+      .mini-row.busy .c {
+        background: #fff;
+      }
+
+      /* tip */
+      .tip {
+        margin-top: 16px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 16px;
+        border: 3px dashed var(--ink);
+        border-radius: 16px;
+        background: var(--soft);
+      }
+      .tip .badge {
+        width: 40px;
+        height: 40px;
+        border: 3px solid var(--ink);
+        border-radius: 12px;
+        background: var(--pop);
+        display: grid;
+        place-items: center;
+        flex: none;
+      }
+      .tip code {
+        font-family: inherit;
+        font-weight: 800;
+        background: #fff;
+        border: 2px solid var(--ink);
+        border-radius: 8px;
+        padding: 1px 6px;
+      }
+
+      /* features */
+      .feats {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 12px;
+      }
+      .feat {
+        border: 3px solid var(--ink);
+        border-radius: 18px;
+        background: #fff;
+        padding: 14px;
+      }
+      .feat .tile {
+        width: 52px;
+        height: 52px;
+        border: 3px solid var(--ink);
+        border-radius: 14px;
+        display: grid;
+        place-items: center;
+        margin-bottom: 10px;
+        --duo-opacity: 1;
+      }
+      .feat .tile .ic {
+        width: 30px;
+        height: 30px;
+      }
+      .feat b {
+        display: block;
+        font-size: 16px;
+      }
+      .feat span {
+        font-size: 13px;
+        color: var(--muted);
+      }
+
+      /* tool cards */
+      .tools {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 14px;
+      }
+      .tool {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 14px;
+        border: 3px solid var(--ink);
+        border-radius: 18px;
+        background: #fff;
+        box-shadow: 4px 4px 0 var(--ink);
+      }
+      .tool.hover {
+        transform: translate(-2px, -2px);
+        box-shadow: 6px 6px 0 var(--ink);
+        background: var(--soft);
+      }
+      .sticker {
+        position: relative;
+        width: 50px;
+        height: 50px;
+        flex: none;
+        border: 3px solid var(--ink);
+        border-radius: 14px;
+        display: grid;
+        place-items: center;
+        color: #fff;
+        transform: rotate(-5deg);
+        box-shadow: 2px 2px 0 var(--ink);
+      }
+      .sticker .ic {
+        width: 26px;
+        height: 26px;
+      }
+      .sticker .fmt {
+        position: absolute;
+        right: -10px;
+        bottom: -8px;
+        transform: rotate(5deg);
+        padding: 0 5px;
+        border: 2px solid var(--ink);
+        border-radius: 7px;
+        background: var(--mint);
+        color: var(--ink);
+        font-size: 10px;
+        font-weight: 800;
+      }
+      .tool-text {
+        flex: 1;
+        min-width: 0;
+      }
+      .tool-text b {
+        display: block;
+        font-size: 16px;
+        line-height: 1.15;
+      }
+      .tool-text span {
+        font-size: 13px;
+        color: var(--muted);
+      }
+      .go {
+        width: 34px;
+        height: 34px;
+        flex: none;
+        border: 2px solid var(--ink);
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+      }
+      .go .ic {
+        width: 16px;
+        height: 16px;
+      }
+      .tool.hover .go {
+        background: var(--ink);
+        color: var(--bg);
+      }
+
+      /* faq */
+      .faq-item {
+        border-top: 2px solid var(--soft);
+      }
+      .faq-item:first-of-type {
+        border-top: 0;
+      }
+      .faq-q {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        padding: 13px 0;
+        font-weight: 800;
+        font-size: 17px;
+      }
+      .faq-q i {
+        width: 32px;
+        height: 32px;
+        border: 2px solid var(--ink);
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        flex: none;
+      }
+      .faq-q i .ic {
+        width: 16px;
+        height: 16px;
+      }
+      .open .faq-q i {
+        background: var(--pop);
+      }
+      .faq-a {
+        margin: -4px 0 14px;
+        color: var(--muted);
+        max-width: 70ch;
+      }
+
+      /* footer strip */
+      .foot {
+        background: var(--ink);
+        color: #fff8e1;
+        border-radius: 20px;
+        padding: 20px;
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 16px;
+      }
+      .foot b {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--bg);
+        margin-bottom: 6px;
+      }
+      .foot b .ic {
+        width: 18px;
+        height: 18px;
+      }
+      .foot span {
+        display: block;
+        padding: 3px 0;
+        font-size: 14px;
+        color: #e9e3cf;
+      }
+      .foot .langbtn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        margin-top: 8px;
+        padding: 6px 12px;
+        border: 2px solid #fff8e1;
+        border-radius: 99px;
+        font-weight: 700;
+      }
+    </style>
+  </head>
+  <body>
+    <header class="mock-head">
+      <h1>Option G: Real icons, step cards and tool cards</h1>
+      <p>
+        Interface icons: Phosphor (Bold), feature icons: Phosphor (Duotone, filled with our pink/mint), platform logos:
+        Simple Icons. The step pictures are small copies of the real app (share sheet, our link box, our format rows),
+        not drawings. <a href="index.html">Back to all options</a>
+      </p>
+    </header>
+    <div class="frames" style="display: block; max-width: 1240px">
+      <div class="app">
+        <!-- header -->
+        <div class="sheet">
+          <p class="label">Header (desktop)</p>
+          <div class="hdr">
+            <div class="brand"><span class="logo" data-i="i-download-simple"></span>YTPocket</div>
+            <nav class="menu">
+              <span class="on"
+                >YouTube <svg class="ic"><use href="#i-caret-down" /></svg
+              ></span>
+              <span>TikTok</span><span>Facebook</span>
+              <span
+                >More <svg class="ic"><use href="#i-caret-down" /></svg
+              ></span>
+            </nav>
+            <div class="hdr-end">
+              <span class="ibtn"
+                ><svg class="ic"><use href="#i-moon" /></svg
+              ></span>
+              <span class="ibtn"
+                ><svg class="ic"><use href="#i-globe-simple" /></svg>EN</span
+              >
+              <span class="ibtn"
+                ><svg class="ic"><use href="#i-list" /></svg
+              ></span>
+            </div>
+          </div>
+          <div class="crumbs">
+            Home <svg class="ic"><use href="#i-caret-right" /></svg> YouTube
+            <svg class="ic"><use href="#i-caret-right" /></svg> <b>YouTube to MP3</b>
+          </div>
+        </div>
+
+        <!-- steps: YouTube to MP3 -->
+        <div class="sheet">
+          <p class="label">Step cards: "YouTube to MP3" page</p>
+          <section class="box sec">
+            <h2>How to convert YouTube to MP3</h2>
+            <div class="steps">
+              <div class="step">
+                <div class="stage">
+                  <div class="phone-mini">
+                    <div class="video" style="background: #ff0000">
+                      <svg class="ic"><use href="#b-youtube" /></svg>
+                    </div>
+                    <div class="share">
+                      <div class="hit">
+                        <i
+                          ><svg class="ic"><use href="#i-link-simple" /></svg></i
+                        >Copy link
+                        <svg class="hand"><use href="#i-hand-pointing" /></svg>
+                      </div>
+                      <div>
+                        <i
+                          ><svg class="ic"><use href="#i-share-network" /></svg></i
+                        >Share
+                      </div>
+                      <div>
+                        <i
+                          ><svg class="ic"><use href="#i-dots-three" /></svg></i
+                        >More
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="step-text">
+                  <b><span class="num">1</span>Copy the link</b>
+                  <p>In YouTube, tap Share, then Copy link.</p>
+                </div>
+              </div>
+              <div class="step">
+                <div class="stage">
+                  <span class="pasted"
+                    ><svg class="ic"><use href="#i-clipboard-text" /></svg>Pasted</span
+                  >
+                  <div class="mini-intake">
+                    <div class="f">
+                      <svg class="ic"><use href="#i-link-simple" /></svg>youtu.be/aqz-KE-bpKQ
+                    </div>
+                    <div class="b">Get MP3</div>
+                  </div>
+                  <svg class="hand" style="right: 34px; bottom: 34px"><use href="#i-hand-pointing" /></svg>
+                </div>
+                <div class="step-text">
+                  <b><span class="num">2</span>Paste it here</b>
+                  <p>Paste the link in the box above and tap Get MP3.</p>
+                </div>
+              </div>
+              <div class="step">
+                <div class="stage">
+                  <div class="mini-sheet">
+                    <div class="mini-tabs"><span>Video MP4</span><span class="on">Audio MP3</span></div>
+                    <div class="mini-row busy">
+                      <div class="t">MP3 192 kbps<small>Preparing, 64%</small></div>
+                      <div class="c">64%</div>
+                    </div>
+                    <div class="mini-row">
+                      <div class="t">MP3 128 kbps<small>About 9.7 MB</small></div>
+                      <div class="c">
+                        <svg class="ic"><use href="#i-download-simple" /></svg>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="step-text">
+                  <b><span class="num">3</span>Pick a quality</b>
+                  <p>Tap 192 or 128 kbps. The MP3 saves to your device by itself.</p>
+                </div>
+              </div>
+            </div>
+            <div class="tip">
+              <span class="badge"
+                ><svg class="ic"><use href="#i-link-simple" /></svg
+              ></span>
+              <div>
+                <b>Shortcut:</b> in the address bar, type <code>ytpocket.com/</code> in front of any video link and
+                press Enter.
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <!-- steps: TikTok variant -->
+        <div class="sheet">
+          <p class="label">Same cards on the TikTok page (platform colours and wording change per page)</p>
+          <section class="box sec">
+            <div class="steps">
+              <div class="step">
+                <div class="stage">
+                  <div class="phone-mini">
+                    <div class="video" style="background: #000">
+                      <svg class="ic"><use href="#b-tiktok" /></svg>
+                    </div>
+                    <div class="share">
+                      <div class="hit">
+                        <i
+                          ><svg class="ic"><use href="#i-link-simple" /></svg></i
+                        >Copy link
+                        <svg class="hand"><use href="#i-hand-pointing" /></svg>
+                      </div>
+                      <div>
+                        <i
+                          ><svg class="ic"><use href="#i-share-network" /></svg></i
+                        >Share
+                      </div>
+                      <div>
+                        <i
+                          ><svg class="ic"><use href="#i-dots-three" /></svg></i
+                        >More
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="step-text">
+                  <b><span class="num">1</span>Copy the link</b>
+                  <p>In TikTok, tap Share, then Copy link.</p>
+                </div>
+              </div>
+              <div class="step">
+                <div class="stage">
+                  <span class="pasted"
+                    ><svg class="ic"><use href="#i-clipboard-text" /></svg>Pasted</span
+                  >
+                  <div class="mini-intake">
+                    <div class="f">
+                      <svg class="ic"><use href="#i-link-simple" /></svg>vm.tiktok.com/ZM…
+                    </div>
+                    <div class="b">Get video</div>
+                  </div>
+                  <svg class="hand" style="right: 40px; bottom: 34px"><use href="#i-hand-pointing" /></svg>
+                </div>
+                <div class="step-text">
+                  <b><span class="num">2</span>Paste it here</b>
+                  <p>Paste the link above and tap Get video.</p>
+                </div>
+              </div>
+              <div class="step">
+                <div class="stage">
+                  <div class="mini-sheet">
+                    <div class="mini-tabs"><span class="on">Video MP4</span><span>Audio MP3</span></div>
+                    <div class="mini-row">
+                      <div class="t">1080p HD<small>About 8 MB</small></div>
+                      <div class="c" style="background: var(--ink); color: var(--mint)">
+                        <svg class="ic"><use href="#i-check" /></svg>
+                      </div>
+                    </div>
+                    <div class="mini-row">
+                      <div class="t">720p HD<small>About 5 MB</small></div>
+                      <div class="c">
+                        <svg class="ic"><use href="#i-download-simple" /></svg>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="step-text">
+                  <b><span class="num">3</span>Save it</b>
+                  <p>Pick MP4 or MP3. Done: it's in your Downloads.</p>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <!-- features -->
+        <div class="sheet">
+          <p class="label">"What you get": duotone icons in coloured tiles</p>
+          <section class="box sec">
+            <h2>What you get</h2>
+            <div class="feats">
+              <div class="feat">
+                <div class="tile" style="background: var(--pop); --duo: #fff">
+                  <svg class="ic"><use href="#d-music-notes" /></svg>
+                </div>
+                <b>Title and cover art</b><span>Looks right in your music app</span>
+              </div>
+              <div class="feat">
+                <div class="tile" style="background: var(--mint); --duo: #fff">
+                  <svg class="ic"><use href="#d-sliders-horizontal" /></svg>
+                </div>
+                <b>Choose the quality</b><span>128, 192 or 320 kbps</span>
+              </div>
+              <div class="feat">
+                <div class="tile" style="background: var(--bg); --duo: #fff">
+                  <svg class="ic"><use href="#d-devices" /></svg>
+                </div>
+                <b>Phone or computer</b><span>Nothing to install</span>
+              </div>
+              <div class="feat">
+                <div class="tile" style="background: var(--pop); --duo: #fff">
+                  <svg class="ic"><use href="#d-infinity" /></svg>
+                </div>
+                <b>Free, no limits</b><span>No sign-up, no app</span>
+              </div>
+              <div class="feat">
+                <div class="tile" style="background: var(--mint); --duo: #fff">
+                  <svg class="ic"><use href="#d-shield-check" /></svg>
+                </div>
+                <b>Private</b><span>Files deleted after 15 minutes</span>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <!-- tool cards -->
+        <div class="sheet">
+          <p class="label">Tool cards: platform logo sticker, format tag, arrow (2nd card shows the hover state)</p>
+          <section class="box sec">
+            <h2>More tools</h2>
+            <div class="tools" id="tools"></div>
+          </section>
+        </div>
+
+        <!-- faq -->
+        <div class="sheet">
+          <p class="label">FAQ with real plus/minus icons</p>
+          <section class="box sec">
+            <h2>Questions and answers</h2>
+            <div class="faq-item open">
+              <div class="faq-q">
+                Which MP3 quality should I choose?
+                <i
+                  ><svg class="ic"><use href="#i-minus" /></svg
+                ></i>
+              </div>
+              <p class="faq-a">
+                192 kbps sounds as good as the YouTube original for almost everyone. 128 kbps makes smaller files.
+              </p>
+            </div>
+            <div class="faq-item">
+              <div class="faq-q">
+                Is it free?
+                <i
+                  ><svg class="ic"><use href="#i-plus" /></svg
+                ></i>
+              </div>
+            </div>
+            <div class="faq-item">
+              <div class="faq-q">
+                Where do the files go?
+                <i
+                  ><svg class="ic"><use href="#i-plus" /></svg
+                ></i>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <!-- footer -->
+        <div class="sheet">
+          <p class="label">Footer columns with platform logos</p>
+          <div class="foot">
+            <div>
+              <b
+                ><svg class="ic"><use href="#b-youtube" /></svg>YouTube</b
+              ><span>Video downloader</span><span>YouTube to MP3</span><span>YouTube to MP4</span><span>Shorts</span
+              ><span>Thumbnail</span>
+            </div>
+            <div>
+              <b
+                ><svg class="ic"><use href="#b-tiktok" /></svg>TikTok</b
+              ><span>TikTok downloader</span><span>TikTok to MP3</span>
+              <b style="margin-top: 12px"
+                ><svg class="ic"><use href="#b-facebook" /></svg>Facebook</b
+              ><span>Video downloader</span><span>Reels</span>
+            </div>
+            <div>
+              <b
+                ><svg class="ic"><use href="#i-arrow-up-right" /></svg>More</b
+              ><span>Pinterest</span><span>Dailymotion</span><span>Twitch clips</span>
+            </div>
+            <div>
+              <b
+                ><svg class="ic"><use href="#i-download-simple" /></svg>YTPocket</b
+              ><span>Terms</span><span>Privacy</span><span>Copyright (DMCA)</span><span>Contact</span>
+              <span class="langbtn"
+                ><svg class="ic"><use href="#i-globe-simple" /></svg>English</span
+              >
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script>
+      document.body.insertAdjacentHTML('afterbegin', window.ICON_SPRITE);
+      for (const el of document.querySelectorAll('[data-i]')) {
+        el.innerHTML = `<svg class="ic"><use href="#${el.dataset.i}"/></svg>`;
+      }
+      const tools = [
+        ['youtube', '#FF0000', 'YouTube video', 'MP4 up to 4K', ''],
+        ['youtube', '#FF0000', 'YouTube to MP3', 'Just the sound', 'MP3'],
+        ['youtube', '#FF0000', 'Shorts downloader', 'Vertical videos', ''],
+        ['youtube', '#FF0000', 'Thumbnail', 'HD cover image', 'JPG'],
+        ['tiktok', '#000000', 'TikTok downloader', 'Videos as MP4', ''],
+        ['tiktok', '#000000', 'TikTok to MP3', 'Just the sound', 'MP3'],
+        ['facebook', '#0866FF', 'Facebook video', 'Public videos', ''],
+        ['facebook', '#0866FF', 'Facebook Reels', 'Short videos', ''],
+        ['pinterest', '#BD081C', 'Pinterest video', 'Video pins', ''],
+        ['dailymotion', '#0A0A0A', 'Dailymotion', 'Up to 1080p', ''],
+        ['twitch', '#9146FF', 'Twitch clips', 'Clips and VODs', ''],
+      ];
+      document.getElementById('tools').innerHTML = tools
+        .map(
+          ([b, c, t, s, f], i) => `<div class="tool${i === 1 ? ' hover' : ''}">
+            <span class="sticker" style="background:${c}"><svg class="ic"><use href="#b-${b}"/></svg>${f ? `<span class="fmt">${f}</span>` : ''}</span>
+            <span class="tool-text"><b>${t}</b><span>${s}</span></span>
+            <span class="go"><svg class="ic"><use href="#i-arrow-up-right"/></svg></span></div>`
+        )
+        .join('');
+    </script>
+  </body>
+</html>
