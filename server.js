@@ -499,7 +499,8 @@ async function buildSpec(body, ip) {
   const raw = String(body?.format || 'mp3').toLowerCase();
   const kind = raw === 'video' ? 'video' : raw === 'audio' || raw === 'original' ? 'audio' : 'mp3';
   if ((kind === 'mp3' || kind === 'video') && !jobs.ffmpeg) {
-    throw ytdlp.err('NO_BINARY', 'ffmpeg is not installed on this server.', 'Run npm install.');
+    console.error('[setup] ffmpeg is missing: run npm install');
+    throw ytdlp.err('NO_BINARY');
   }
 
   // Per-user and queue limits first: they are free, extraction is not.
