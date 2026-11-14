@@ -51,6 +51,14 @@ chown -R ytdl:ytdl "$APP_DIR"
 echo "==> Dependencies + yt-dlp (verified)"
 sudo -u ytdl -H bash -c "cd '$APP_DIR' && npm ci --omit=dev --no-audit --no-fund && YTDLP_STRICT=1 node scripts/fetch-ytdlp.js"
 
+echo "==> Log retention (the Privacy Policy promises logs are deleted after 14 days)"
+mkdir -p /etc/systemd/journald.conf.d
+cat > /etc/systemd/journald.conf.d/ytdl-retention.conf <<'EOF'
+[Journal]
+MaxRetentionSec=14day
+EOF
+systemctl restart systemd-journald
+
 echo "==> systemd service"
 install -m 644 "$APP_DIR/deploy/ytdl.service" /etc/systemd/system/ytdl.service
 systemctl daemon-reload

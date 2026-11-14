@@ -21,7 +21,7 @@ module.exports = [
     },
   },
   {
-    files: ['public/app.js'],
+    files: ['public/app.js', 'public/nav.js'],
     languageOptions: { sourceType: 'module', globals: { ...globals.browser } },
   },
   {

@@ -13,12 +13,25 @@ accounts, files never leave your server except to the user who asked for them.
   title, channel, chapters and the thumbnail embedded as cover art.
 - **Thumbnail download:** the best available image as JPG (downloaded and
   cached by the server, so it's complete and fast).
-- **Platform pages:** `/` (YouTube), `/tiktok-downloader`,
-  `/facebook-video-downloader`, `/pinterest-video-downloader`,
-  `/dailymotion-downloader`, `/twitch-clip-downloader`. Each has its own title,
-  headline, how-to, FAQ (with FAQ structured data) and canonical link; any
-  supported link works on any page. Defined in `lib/pages.js`, rendered from
-  `views/page.html`. Also `/sitemap.xml` and `/robots.txt`.
+- **Tool pages (12):** YouTube (`/`, `/youtube-to-mp3`, `/youtube-to-mp4`,
+  `/youtube-shorts-downloader`, `/youtube-thumbnail-downloader`), TikTok
+  (`/tiktok-downloader`, `/tiktok-to-mp3`), Facebook
+  (`/facebook-video-downloader`, `/facebook-reels-downloader`), Pinterest,
+  Dailymotion and Twitch. Each has its own title, headline, button label,
+  default tab (MP3 pages open on Audio, the thumbnail page only saves the
+  image), intro, illustrated steps, features, FAQ, breadcrumbs and
+  structured data (FAQPage, BreadcrumbList). Any supported link works on any
+  page.
+- **Legal pages:** `/terms`, `/privacy`, `/copyright`, `/contact`
+  (plain-language templates; have them checked by a lawyer; set
+  `CONTACT_EMAIL`).
+- **Site structure:** header with platform menus (slide-in menu on phones),
+  sister-page tabs, "More tools" cards, footer with all links,
+  `/sitemap.xml`, `/robots.txt`, friendly 404.
+- **Where to edit:** all page text lives in `lib/content.js`; the HTML is
+  built by `lib/pages.js` from `views/page.html` and `views/doc.html`.
+  Icons: `npm run icons` rebuilds `public/icons.svg` from Phosphor Icons (MIT)
+  and Simple Icons (CC0) (list in `scripts/build-icons.js`).
 - **Supported sites:** YouTube, TikTok, Facebook, Pinterest, Dailymotion and
   Twitch (allow-list in `lib/ytdlp.js`). Instagram, X, Vimeo, Reddit and
   SoundCloud links get a polite "not supported yet" (they need a signed-in

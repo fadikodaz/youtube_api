@@ -5,6 +5,10 @@
 // the file (POST /api/jobs, then polling), and the file is saved
 // automatically when ready. Tap again to cancel, retry, or download again.
 // A reload brings back the current video and any download in progress.
+//
+// Each page says which tab opens first (<body data-tab="video|audio|
+// thumbnail">); "thumbnail" pages only offer the thumbnail.
+import './nav.js';
 
 const $ = (sel) => document.querySelector(sel);
 
@@ -12,6 +16,7 @@ const el = {
   body: document.body,
   url: $('#url'),
   pasteZone: $('#pasteZone'),
+  pasteBtn: $('#pasteBtn'),
   clearBtn: $('#clearBtn'),
   fetchBtn: $('#fetchBtn'),
   dropZone: $('#dropZone'),
@@ -22,8 +27,7 @@ const el = {
   screen: $('#screen'),
   thumb: $('#thumb'),
   liveBadge: $('#liveBadge'),
-  themeBtn: $('#themeBtn'),
-  themeIcon: $('#themeIcon'),
+
   title: $('#title'),
   site: $('#site'),
   channel: $('#channel'),
@@ -46,6 +50,8 @@ const el = {
 };
 
 const BASE_TITLE = document.title;
+const CTA_LABEL = $('#fetchBtn').textContent.trim() || 'Get video'; // per page: Get MP3, Get thumbnail...
+const THUMBNAIL_ONLY = document.body.dataset.tab === 'thumbnail';
 const INFO_TTL = 10 * 60 * 1000;
 const INFO_FRESH = 2 * 60 * 1000;
 const STORE_KEY = 'ytpocket.session.v1';
@@ -57,7 +63,7 @@ const ACTIVE = new Set(['creating', 'queued', 'downloading', 'processing']);
 const state = {
   info: null, // current /api/info response
   url: '', // canonical URL of the current video
-  kind: 'video', // which tab is shown
+  kind: document.body.dataset.tab === 'audio' ? 'audio' : 'video', // which tab is shown
   cut: null, // { start, end } seconds when "Cut a part" is set
   fetchCtl: null, // AbortController of the info request in flight
   fetchTimer: 0,
@@ -148,20 +154,22 @@ function h(tag, props = {}, ...children) {
   return node;
 }
 
-function svgIcon(d, viewBox = '0 0 24 24') {
-  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  svg.setAttribute('viewBox', viewBox);
+// Icons come from the sprite /icons.svg (Phosphor, see scripts/build-icons.js).
+function svgIcon(id) {
+  const ns = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(ns, 'svg');
+  svg.setAttribute('class', 'ic');
   svg.setAttribute('aria-hidden', 'true');
-  const p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-  p.setAttribute('d', d);
-  svg.append(p);
+  const use = document.createElementNS(ns, 'use');
+  use.setAttribute('href', `/icons.svg#${id}`);
+  svg.append(use);
   return svg;
 }
 const ICON = {
-  down: 'M12 5v10M8 11l4 4 4-4M7 19h10',
-  check: 'M5 12.5l4.5 4.5L19 7.5',
-  retry: 'M19 12a7 7 0 1 1-2.05-4.95M19 5v4h-4',
-  close: 'M4 4l8 8M12 4l-8 8',
+  down: 'i-download-simple',
+  check: 'i-check',
+  retry: 'i-arrow-clockwise',
+  close: 'i-x',
 };
 
 const show = (n) => (n.hidden = false);
@@ -182,7 +190,7 @@ function announce(text) {
 }
 
 function toast(text, { title = '', type = 'success', ms } = {}) {
-  const close = h('button', { type: 'button', 'aria-label': 'Dismiss' }, svgIcon(ICON.close, '0 0 16 16'));
+  const close = h('button', { type: 'button', 'aria-label': 'Dismiss' }, svgIcon(ICON.close));
   const box = h(
     'div',
     { class: `toast ${type}`, role: type === 'error' ? 'alert' : 'status' },
@@ -269,8 +277,10 @@ function abortFetch() {
 function updateControls() {
   const loading = !!state.fetchCtl;
   el.fetchBtn.disabled = loading;
-  el.fetchBtn.textContent = loading ? 'Loading…' : 'Get video';
+  el.fetchBtn.textContent = loading ? 'Loading…' : CTA_LABEL;
+  // Empty field: Paste button. With a link in it: the clear (X) button.
   el.clearBtn.hidden = !el.url.value;
+  el.pasteBtn.hidden = !!el.url.value;
 }
 
 async function fetchInfo(input, { force = false, silent = false } = {}) {
@@ -408,10 +418,12 @@ function showInfo(info, url) {
   el.body.classList.add('has-video');
   show(el.result);
   show(el.videoBody);
-  show(el.sheet);
-  renderOptions();
+  // Thumbnail pages: the big "Save thumbnail" button is the only action.
+  el.sheet.hidden = THUMBNAIL_ONLY;
+  el.thumbDl.classList.toggle('big', THUMBNAIL_ONLY);
+  if (!THUMBNAIL_ONLY) renderOptions();
   updateControls();
-  if (!same) announce(`Loaded: ${info.title}. Choose a format.`);
+  if (!same) announce(`Loaded: ${info.title}. ${THUMBNAIL_ONLY ? 'Save the thumbnail.' : 'Choose a format.'}`);
 }
 
 function resetResult() {
@@ -469,34 +481,6 @@ el.thumbDl.addEventListener('click', async () => {
     label.textContent = 'Save thumbnail';
   }
 });
-
-// ------------------------------------------------------------------ theme --
-// Yellow by default; the moon button switches to dark (remembered).
-const ICON_MOON = 'M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z';
-const ICON_SUN =
-  'M12 4V2M12 22v-2M4 12H2M22 12h-2M5.6 5.6 4.2 4.2M19.8 19.8l-1.4-1.4M5.6 18.4l-1.4 1.4M19.8 4.2l-1.4 1.4M16 12a4 4 0 1 1-8 0 4 4 0 0 1 8 0z';
-
-function paintThemeButton() {
-  const dark = document.documentElement.dataset.theme === 'dark';
-  el.themeIcon.setAttribute('d', dark ? ICON_SUN : ICON_MOON);
-  el.themeBtn.setAttribute('aria-label', dark ? 'Switch to yellow mode' : 'Switch to dark mode');
-  el.themeBtn.setAttribute('aria-pressed', String(dark));
-  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#1C1B18' : '#FFD43B');
-}
-
-el.themeBtn.addEventListener('click', () => {
-  const dark = document.documentElement.dataset.theme !== 'dark';
-  if (dark) document.documentElement.dataset.theme = 'dark';
-  else delete document.documentElement.dataset.theme;
-  try {
-    if (dark) localStorage.setItem('ytpocket.theme', 'dark');
-    else localStorage.removeItem('ytpocket.theme');
-  } catch {
-    /* not remembered, still switched */
-  }
-  paintThemeButton();
-});
-paintThemeButton();
 
 // ---------------------------------------------------------------- options --
 
@@ -1091,7 +1075,9 @@ el.url.addEventListener('keydown', (e) => {
   }
 });
 
-el.pasteZone.addEventListener('click', async () => {
+// Paste from the clipboard: the big area on phones and the button inside the
+// link field do the same thing.
+async function pasteFromClipboard() {
   try {
     const text = await navigator.clipboard.readText();
     const link = findLink(text);
@@ -1100,9 +1086,13 @@ el.pasteZone.addEventListener('click', async () => {
     else setError('Nothing copied yet.', 'In YouTube, tap Share, then Copy link, and come back.');
   } catch {
     el.url.focus();
-    toast('Your browser blocked the clipboard. Long-press the box below and choose Paste.', { type: 'info' });
+    toast('Your browser blocked the clipboard. Press Ctrl+V, or long-press the link box and choose Paste.', {
+      type: 'info',
+    });
   }
-});
+}
+el.pasteZone.addEventListener('click', pasteFromClipboard);
+el.pasteBtn.addEventListener('click', pasteFromClipboard);
 
 el.clearBtn.addEventListener('click', () => {
   abortFetch();

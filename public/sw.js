@@ -1,11 +1,13 @@
 // Service worker: makes YTPocket installable and keeps the app shell
 // available when the network drops. API calls and downloads are never cached.
-const CACHE = 'ytpocket-shell-v2';
+const CACHE = 'ytpocket-shell-v3';
 const SHELL = [
   '/',
   '/app.css',
   '/app.js',
+  '/nav.js',
   '/theme.js',
+  '/icons.svg',
   '/icon.svg',
   '/fonts/bricolage-latin.woff2',
   '/manifest.webmanifest',

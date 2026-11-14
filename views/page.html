@@ -1,9 +1,8 @@
 <!doctype html>
 <!--
-  Page template, rendered by lib/pages.js for every downloader page
-  (YouTube home page, TikTok, Facebook...). {{name}} is replaced with escaped
-  text, {{{name}}} with HTML built by the renderer. {{origin}} is filled in per
-  request. Not served directly.
+  Tool page template, rendered by lib/pages.js from lib/content.js.
+  {{name}} = escaped text, {{{name}}} = HTML built by the renderer,
+  {{origin}} = filled in per request. Not served directly.
 -->
 <html lang="{{lang}}">
   <head>
@@ -30,67 +29,54 @@
     <script type="module" src="/app.js"></script>
     {{{jsonld}}}
   </head>
-  <body data-platform="{{platform}}">
+  <body data-tab="{{tab}}">
     <a class="skip" href="#url">Skip to the link field</a>
 
-    <header class="topbar">
-      <a class="brand" href="/" aria-label="YTPocket home">
-        <span class="logo" aria-hidden="true">
-          <svg viewBox="0 0 24 24"><path d="M12 5v10M8 11l4 4 4-4M7 19h10" /></svg>
-        </span>
-        YTPocket
-      </a>
-      <div class="topbar-end">
-        <p class="status" id="health" role="status" hidden></p>
-        <button class="theme-btn" id="themeBtn" type="button" aria-label="Switch to dark mode" aria-pressed="false">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path id="themeIcon" d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z" />
-          </svg>
-        </button>
-      </div>
-    </header>
+    {{{header}}}
 
     <main class="page" id="main">
+      {{{crumbs}}}
+
       <section class="hero box" id="hero" aria-labelledby="headline">
         <h1 id="headline">{{h1}}</h1>
         <p class="lead">{{lead}}</p>
 
         <button class="paste-zone" id="pasteZone" type="button">
-          Tap to paste link
+          <span class="paste-title"
+            ><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-clipboard-text" /></svg>Tap to paste link</span
+          >
           <small>{{pasteHint}}</small>
         </button>
 
         <div class="intake" id="dropZone">
-          <label class="visually-hidden" for="url">{{platform}} video link</label>
-          <input
-            id="url"
-            type="url"
-            inputmode="url"
-            autocomplete="off"
-            autocapitalize="off"
-            spellcheck="false"
-            enterkeyhint="go"
-            placeholder="{{placeholder}}"
-            aria-describedby="error"
-          />
-          <button class="clear" id="clearBtn" type="button" aria-label="Clear link" hidden>
-            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8" /></svg>
-          </button>
-          <button class="cta" id="fetchBtn" type="button">Get video</button>
+          <label class="visually-hidden" for="url">Video link</label>
+          <span class="field-wrap">
+            <input
+              id="url"
+              type="url"
+              inputmode="url"
+              autocomplete="off"
+              autocapitalize="off"
+              spellcheck="false"
+              enterkeyhint="go"
+              placeholder="Paste link here"
+              aria-describedby="error"
+            />
+            <button class="field-paste" id="pasteBtn" type="button" aria-label="Paste link">
+              <svg class="ic" aria-hidden="true"><use href="/icons.svg#i-clipboard-text" /></svg
+              ><span class="field-paste-text">Paste</span>
+            </button>
+            <button class="clear" id="clearBtn" type="button" aria-label="Clear link" hidden>
+              <svg class="ic" aria-hidden="true"><use href="/icons.svg#i-x" /></svg>
+            </button>
+          </span>
+          <button class="cta" id="fetchBtn" type="button">{{cta}}</button>
         </div>
         <div class="alert" id="error" role="alert" hidden></div>
+        <p class="terms">{{{terms}}}</p>
       </section>
 
-      <ul class="chips" id="chips" aria-label="Formats">
-        {{{chips}}}
-      </ul>
-
-      <section class="howto box" aria-labelledby="howtoTitle">
-        <h2 id="howtoTitle">{{howtoTitle}}</h2>
-        <ol>
-          {{{howto}}}
-        </ol>
-      </section>
+      {{{tabs}}}
 
       <section class="result" id="result" aria-live="polite" aria-busy="false" hidden>
         <article class="video box" id="videoCard">
@@ -109,7 +95,7 @@
               <h2 id="title"></h2>
               <p class="meta"><span id="site"></span> <span id="channel"></span> <span id="duration"></span></p>
               <button class="pill" id="thumbDl" type="button">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4zM4 15l5-5 4 4 3-3 4 4" /></svg>
+                <svg class="ic" aria-hidden="true"><use href="/icons.svg#i-image" /></svg>
                 <span id="thumbDlText">Save thumbnail</span>
               </button>
             </div>
@@ -119,17 +105,16 @@
         <section class="sheet box" id="sheet" aria-label="Choose a format" hidden>
           <div class="grab" aria-hidden="true"></div>
           <div class="tabs" role="group" aria-label="Format type">
-            <button id="tabVideo" type="button" aria-pressed="true">Video MP4</button>
-            <button id="tabAudio" type="button" aria-pressed="false">Audio MP3</button>
+            <button id="tabVideo" type="button" aria-pressed="true">
+              <svg class="ic" aria-hidden="true"><use href="/icons.svg#i-video-camera" /></svg>Video MP4
+            </button>
+            <button id="tabAudio" type="button" aria-pressed="false">
+              <svg class="ic" aria-hidden="true"><use href="/icons.svg#i-music-notes" /></svg>Audio MP3
+            </button>
           </div>
           <p class="sheet-note" id="sheetNote" hidden></p>
 
           <button class="cut-toggle" id="cutToggle" type="button" aria-expanded="false" aria-controls="cutPanel" hidden>
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path
-                d="M6 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM6 21a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM8.1 7.9 20 20M8.1 16.1 20 4"
-              />
-            </svg>
             Cut a part
           </button>
           <div class="cut" id="cutPanel" hidden>
@@ -149,26 +134,12 @@
         </section>
       </section>
 
-      <section class="faq box" aria-labelledby="faqTitle">
-        <h2 id="faqTitle">Questions and answers</h2>
-        {{{faq}}}
-      </section>
+      <div class="content" id="content">{{{content}}}</div>
 
-      <nav class="more" aria-labelledby="moreTitle">
-        <h2 id="moreTitle">More downloaders</h2>
-        <ul>
-          {{{nav}}}
-        </ul>
-      </nav>
+      {{{related}}}
     </main>
 
-    <footer class="foot">
-      <p>Files are prepared on our server and deleted after 15 minutes. Nothing is stored about you.</p>
-      <p>
-        Only download videos you have the right to. YTPocket is not affiliated with YouTube, TikTok, Meta, Pinterest,
-        Dailymotion or Twitch.
-      </p>
-    </footer>
+    {{{footer}}}
 
     <div class="toasts" id="toasts"></div>
     <div class="visually-hidden" id="announcer" aria-live="polite"></div>

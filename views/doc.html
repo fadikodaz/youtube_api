@@ -1,0 +1,37 @@
+<!doctype html>
+<!--
+  Legal / information page template (Terms, Privacy, Copyright, Contact),
+  rendered by lib/pages.js. Same header and footer as the tool pages.
+-->
+<html lang="{{lang}}">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>{{title}}</title>
+    <meta name="description" content="{{description}}" />
+    <link rel="canonical" href="{{origin}}{{path}}" />
+    <meta name="theme-color" content="#FFD43B" />
+    <script src="/theme.js"></script>
+    <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="preload" href="/fonts/bricolage-latin.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="stylesheet" href="/app.css" />
+    <script type="module" src="/nav.js"></script>
+    {{{jsonld}}}
+  </head>
+  <body class="doc-page">
+    <a class="skip" href="#main">Skip to content</a>
+
+    {{{header}}}
+
+    <main class="page" id="main">
+      {{{crumbs}}}
+      <article class="box sec doc">
+        <h1>{{h1}}</h1>
+        {{{body}}}
+      </article>
+    </main>
+
+    {{{footer}}}
+  </body>
+</html>
