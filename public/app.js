@@ -362,7 +362,20 @@ async function fetchInfo(input, { force = false, silent = false } = {}) {
 
 // ------------------------------------------------------------ video panel --
 
+// A link from another platform (e.g. TikTok on the YouTube page) opens on
+// that platform's page, so the menu, tabs and text match the video. The
+// server has the details cached, so the new page loads it instantly.
+const PAGE_PLATFORM = document.body.dataset.platform || '';
+
+function switchToMatchingPage(info, url) {
+  if (!info.site || !info.page || !PAGE_PLATFORM || info.site === PAGE_PLATFORM) return false;
+  if (info.page === location.pathname) return false;
+  location.assign(`${info.page}?url=${encodeURIComponent(url)}&from=${encodeURIComponent(PAGE_PLATFORM)}`);
+  return true;
+}
+
 function showInfo(info, url) {
+  if (switchToMatchingPage(info, url)) return;
   const key = info.key || info.videoId;
   const same = state.info && (state.info.key || state.info.videoId) === key;
   state.info = info;
@@ -1133,6 +1146,11 @@ function launchLink() {
   history.replaceState(null, '', location.pathname);
   const link = findLink(raw);
   if (!link) setError("The shared item isn't a video link.");
+  // Arrived here from another platform's page (see switchToMatchingPage).
+  const from = q.get('from');
+  if (link && from && from !== PAGE_PLATFORM) {
+    toast(`This is a ${PAGE_PLATFORM} link, so it opened in the ${PAGE_PLATFORM} downloader.`, { type: 'info' });
+  }
   return link;
 }
 

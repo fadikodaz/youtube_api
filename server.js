@@ -23,7 +23,7 @@ const ytdlp = require('./lib/ytdlp');
 const { TTLMap } = require('./lib/cache');
 const { JobManager } = require('./lib/jobs');
 const { fetchImage } = require('./lib/safefetch');
-const { buildPages } = require('./lib/pages');
+const { buildPages, pageForSite } = require('./lib/pages');
 
 const env = (name, def) => {
   const n = Number(process.env[name]);
@@ -433,6 +433,7 @@ function buildInfo(data, parsed) {
   return {
     key: videoKey(data, parsed),
     site: parsed.site,
+    page: pageForSite(parsed.site), // the downloader page that matches this video
     needsLogin: !!parsed.login,
     videoId: data.id,
     url: data.webpage_url || url,
